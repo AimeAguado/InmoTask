@@ -1,0 +1,6 @@
+{
+  "name": "InmoTask - Gestión Inmobiliaria y Tareas",
+  "description": "Sistema integral de gestión inmobiliaria, CRM de clientes, administración de propiedades y tablero ágil de tareas.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
