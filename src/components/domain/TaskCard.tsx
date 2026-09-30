@@ -1,6 +1,7 @@
 import React from 'react';
 import { Task } from '../../types';
 import { Badge } from '../ui/Badge';
+import { UserAvatar } from '../ui/UserAvatar';
 import {
   Calendar,
   Clock,
@@ -144,10 +145,11 @@ export const TaskCard: React.FC<TaskCardProps> = ({
         </div>
 
         <div className="flex items-center gap-1.5" title={`A cargo: ${task.assignedTo.name}`}>
-          <img
+          <UserAvatar
+            name={task.assignedTo.name}
             src={task.assignedTo.avatar}
-            alt={task.assignedTo.name}
-            className="w-5 h-5 rounded-full object-cover border border-white shadow-2xs"
+            size="xs"
+            className="!w-5 !h-5 !text-[8px] border border-white shadow-2xs"
           />
         </div>
       </div>

@@ -1,20 +1,26 @@
-import React, { useState } from 'react';
-import { Property, Task, TaskStatus } from './types';
+import React, { useEffect, useRef, useState } from 'react';
+import { Property, Task, TaskStatus, FinancialEntry } from './types';
 import {
   INITIAL_PROPERTIES,
   INITIAL_TASKS,
-  CURRENT_AGENT,
+  INITIAL_FINANCIAL_ENTRIES,
 } from './data/mockData';
 import { Logo } from './components/ui/Logo';
 import { Button } from './components/ui/Button';
 import { DashboardView } from './components/views/DashboardView';
 import { PropertiesView } from './components/views/PropertiesView';
 import { TasksView } from './components/views/TasksView';
+import { UsersView } from './components/views/UsersView';
+import { LoginView } from './components/views/LoginView';
 import { DesignSystemView } from './components/views/DesignSystemView';
 import { PropertyModal } from './components/domain/PropertyModal';
 import { PropertyDetailModal } from './components/domain/PropertyDetailModal';
 import { TaskModal } from './components/domain/TaskModal';
 import { GlobalSearch } from './components/ui/GlobalSearch';
+import { UserAvatar } from './components/ui/UserAvatar';
+import { NotificationsBell, getUrgentTasks } from './components/ui/NotificationsBell';
+import { useAuth } from './context/AuthContext';
+import { ROLE_PERMISSIONS } from './types';
 import {
   LayoutDashboard,
   Building2,
@@ -23,14 +29,19 @@ import {
   Plus,
   Check,
   ChevronDown,
+  Users as UsersIcon,
+  LogOut,
+  ChevronUp,
 } from 'lucide-react';
 
-type ViewMode = 'dashboard' | 'properties' | 'tasks' | 'design-system';
+type ViewMode = 'dashboard' | 'properties' | 'tasks' | 'design-system' | 'users';
 
 export default function App() {
+  const { user, permissions, isAuthenticated, signOut } = useAuth();
   // Main Data States (Operational Real Estate: Properties & Internal Tasks)
   const [properties, setProperties] = useState<Property[]>(INITIAL_PROPERTIES);
   const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
+  const [financialEntries] = useState<FinancialEntry[]>(INITIAL_FINANCIAL_ENTRIES);
 
   // Active View State
   const [activeView, setActiveView] = useState<ViewMode>('dashboard');
@@ -52,6 +63,47 @@ export default function App() {
   // Quick Action Dropdown State
   const [isQuickCreateOpen, setIsQuickCreateOpen] = useState(false);
 
+  // Navbar User Menu State
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
+
+  const urgentTasks = getUrgentTasks(tasks);
+
+  const headerRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const onPointerDown = (e: MouseEvent) => {
+      if (headerRef.current && !headerRef.current.contains(e.target as Node)) {
+        setIsUserMenuOpen(false);
+        setIsNotifOpen(false);
+        setIsQuickCreateOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    return () => document.removeEventListener('mousedown', onPointerDown);
+  }, []);
+
+  // Aviso al entrar cuando hay tareas de alta demanda vencidas o con vencimiento hoy.
+  // Ojo: App ya está montado en el LoginView, así que hay que dispararlo al autenticarse,
+  // no al montar, o el aviso se muestra (y se borra) antes de que el usuario entre.
+  const urgentToastShown = useRef(false);
+  useEffect(() => {
+    if (!isAuthenticated) {
+      urgentToastShown.current = false;
+      return;
+    }
+    if (urgentToastShown.current) return;
+    urgentToastShown.current = true;
+    if (urgentTasks.length === 0) return;
+    const [first] = urgentTasks;
+    const extra = urgentTasks.length - 1;
+    showToast(
+      `${urgentTasks.length === 1 ? '1 tarea' : `${urgentTasks.length} tareas`} de alta demanda: ` +
+        `${first.task.title}${extra > 0 ? ` y ${extra} más` : ''}`
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]);
+
   // Feedback Toast Notification State
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -59,6 +111,17 @@ export default function App() {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
   };
+
+  const handleSignOut = () => {
+    setIsUserMenuOpen(false);
+    setIsQuickCreateOpen(false);
+    setActiveView('dashboard');
+    signOut();
+  };
+
+  if (!isAuthenticated || !user) {
+    return <LoginView />;
+  }
 
   // Property Handlers
   const handleSaveProperty = (property: Property) => {
@@ -137,7 +200,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-emerald-500 selection:text-white">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-emerald-500 selection:text-white overflow-x-clip">
       {/* Toast Feedback Notification Banner */}
       {toastMessage && (
         <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-3 duration-200">
@@ -149,40 +212,41 @@ export default function App() {
       )}
 
       {/* TOP BAR CONTRACT: Zone 1 (Brand) — Zone 2 (Nav Links) — Zone 3 (Actions) */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/85">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+      <header ref={headerRef} className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/85">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3 xl:gap-4">
           {/* Zone 1: Single text wordmark with house/checkmark symbol */}
           <div
             onClick={() => setActiveView('dashboard')}
-            className="cursor-pointer"
+            className="cursor-pointer shrink-0"
           >
-            <Logo size="md" />
+            <Logo size="md" className="[&>span]:hidden sm:[&>span]:flex" />
           </div>
 
-          {/* Zone 2: Clean text navigation links */}
-          <nav className="hidden md:flex items-center gap-1.5">
+          {/* Zone 2: Clean text navigation links — never compressed */}
+          <nav className="hidden lg:flex items-center gap-1 shrink-0">
             <button
               onClick={() => setActiveView('dashboard')}
-              className={`px-3.5 py-1.5 text-xs font-semibold rounded-md transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+              className={`px-2.5 xl:px-3.5 py-1.5 text-xs font-semibold rounded-md transition-colors whitespace-nowrap flex items-center gap-1.5 ${
                 activeView === 'dashboard'
                   ? 'bg-slate-100 text-slate-900 font-bold'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
               }`}
             >
-              <LayoutDashboard className="w-3.5 h-3.5 text-slate-500" />
+              <LayoutDashboard className="w-3.5 h-3.5 text-slate-500 shrink-0" />
               <span>Panel Operativo</span>
             </button>
 
             <button
               onClick={() => setActiveView('properties')}
-              className={`px-3.5 py-1.5 text-xs font-semibold rounded-md transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+              className={`px-2.5 xl:px-3.5 py-1.5 text-xs font-semibold rounded-md transition-colors whitespace-nowrap flex items-center gap-1.5 ${
                 activeView === 'properties'
                   ? 'bg-slate-100 text-slate-900 font-bold'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
               }`}
             >
-              <Building2 className="w-3.5 h-3.5 text-slate-500" />
-              <span>Inmuebles & Llaves</span>
+              <Building2 className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+              <span className="hidden xl:inline">Inmuebles &amp; Llaves</span>
+              <span className="xl:hidden">Inmuebles</span>
               <span className="text-[11px] font-mono text-slate-500 tabular-nums">
                 ({properties.length})
               </span>
@@ -190,37 +254,53 @@ export default function App() {
 
             <button
               onClick={() => setActiveView('tasks')}
-              className={`px-3.5 py-1.5 text-xs font-semibold rounded-md transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+              className={`px-2.5 xl:px-3.5 py-1.5 text-xs font-semibold rounded-md transition-colors whitespace-nowrap flex items-center gap-1.5 ${
                 activeView === 'tasks'
                   ? 'bg-slate-100 text-slate-900 font-bold'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
               }`}
             >
-              <CheckSquare className="w-3.5 h-3.5 text-slate-500" />
-              <span>Tareas & Visitas</span>
+              <CheckSquare className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+              <span>Tareas &amp; Visitas</span>
               <span className="text-[11px] font-mono text-slate-500 tabular-nums">
                 ({tasks.filter((t) => t.status !== 'completada').length})
               </span>
             </button>
 
+            {permissions?.canManageUsers && (
+              <button
+                onClick={() => setActiveView('users')}
+                className={`px-2.5 xl:px-3.5 py-1.5 text-xs font-semibold rounded-md transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+                  activeView === 'users'
+                    ? 'bg-slate-100 text-slate-900 font-bold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                }`}
+              >
+                <UsersIcon className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span>Usuarios</span>
+              </button>
+            )}
+
             <button
               onClick={() => setActiveView('design-system')}
-              className={`px-3.5 py-1.5 text-xs font-semibold rounded-md transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+              title="Guía de Componentes"
+              className={`hidden 2xl:flex px-2.5 xl:px-3.5 py-1.5 text-xs font-semibold rounded-md transition-colors whitespace-nowrap items-center gap-1.5 ${
                 activeView === 'design-system'
                   ? 'bg-slate-100 text-slate-900 font-bold'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
               }`}
             >
-              <Palette className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Guía de Componentes</span>
+              <Palette className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span>UI</span>
             </button>
           </nav>
 
           {/* Zone 3: Global Search, Quick Create & User Agent Profile */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2 min-w-0 shrink">
             {/* Real-time Global Search Bar */}
             <GlobalSearch
               properties={properties}
+              className="flex-1 min-w-[7rem] max-w-[15rem] shrink"
               onSelectProperty={(property) => {
                 setSelectedPropertyForDetail(property);
                 setIsPropertyDetailOpen(true);
@@ -238,9 +318,9 @@ export default function App() {
                 size="sm"
                 onClick={() => setIsQuickCreateOpen(!isQuickCreateOpen)}
                 leftIcon={<Plus className="w-3.5 h-3.5" />}
-                rightIcon={<ChevronDown className="w-3 h-3 text-slate-400" />}
+                rightIcon={<ChevronDown className="w-3 h-3 text-slate-400 hidden sm:block" />}
               >
-                + Crear
+                <span className="hidden sm:inline">+ Crear</span>
               </Button>
 
               {isQuickCreateOpen && (
@@ -249,7 +329,7 @@ export default function App() {
                     className="fixed inset-0 z-30"
                     onClick={() => setIsQuickCreateOpen(false)}
                   />
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-200 py-1.5 z-40 animate-in fade-in zoom-in-95 text-xs">
+                  <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-200 py-1.5 z-40 animate-in fade-in zoom-in-95 text-xs">
                     <button
                       onClick={() => {
                         setIsQuickCreateOpen(false);
@@ -277,27 +357,96 @@ export default function App() {
               )}
             </div>
 
-            {/* Agent Profile */}
-            <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
-              <img
-                src={CURRENT_AGENT.avatar}
-                alt={CURRENT_AGENT.name}
-                className="w-8 h-8 rounded-full object-cover border border-slate-300 shadow-2xs"
-              />
-              <div className="hidden lg:block text-left">
-                <div className="text-xs font-bold text-slate-900 leading-tight">
-                  {CURRENT_AGENT.name}
+            <NotificationsBell
+              tasks={tasks}
+              isOpen={isNotifOpen}
+              onToggle={() => {
+                setIsNotifOpen((v) => !v);
+                setIsUserMenuOpen(false);
+                setIsQuickCreateOpen(false);
+              }}
+              onNavigateToTasks={() => {
+                setActiveView('tasks');
+                setGlobalSearchQuery('');
+              }}
+              onClose={() => setIsNotifOpen(false)}
+              onCompleteTask={handleToggleTaskStatus}
+            />
+
+            {/* Agent Profile + Session Menu */}
+            <div className="relative flex items-center gap-2 pl-2 border-l border-slate-200 shrink-0">
+              <button
+                onClick={() => {
+                  setIsUserMenuOpen((v) => !v);
+                  setIsNotifOpen(false);
+                  setIsQuickCreateOpen(false);
+                }}
+                className="flex items-center gap-2 rounded-lg px-1 py-0.5 hover:bg-slate-50 transition-colors"
+                aria-expanded={isUserMenuOpen}
+                title="Menú de usuario"
+              >
+                <UserAvatar name={user.name} src={user.avatar} size="sm" />
+                <div className="hidden xl:block min-w-0 max-w-[150px] text-left">
+                  <div className="text-xs font-bold text-slate-900 leading-tight truncate">
+                    {user.name}
+                  </div>
+                  <div className="text-[10px] text-slate-500 leading-tight truncate">
+                    {permissions?.label}
+                  </div>
                 </div>
-                <div className="text-[10px] text-slate-500 leading-tight">
-                  {CURRENT_AGENT.role}
-                </div>
-              </div>
+                {isUserMenuOpen ? (
+                  <ChevronUp className="w-3 h-3 text-slate-400 shrink-0 hidden sm:block" />
+                ) : (
+                  <ChevronDown className="w-3 h-3 text-slate-400 shrink-0 hidden sm:block" />
+                )}
+              </button>
+
+              {isUserMenuOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-30"
+                    onClick={() => setIsUserMenuOpen(false)}
+                  />
+                  <div className="absolute top-full right-0 mt-2 w-60 bg-white rounded-xl shadow-lg border border-slate-200 py-1.5 z-40 text-xs overflow-hidden">
+                    <div className="px-3.5 py-2.5 border-b border-slate-100">
+                      <div className="font-bold text-slate-900 truncate">{user.name}</div>
+                      <div className="font-mono text-[11px] text-slate-500 truncate">
+                        {user.email}
+                      </div>
+                      <div className="mt-1.5 inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        {permissions?.label}
+                      </div>
+                    </div>
+
+                    {permissions?.canManageUsers && (
+                      <button
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          setActiveView('users');
+                        }}
+                        className="w-full text-left px-3.5 py-2 hover:bg-slate-50 flex items-center gap-2 text-slate-700"
+                      >
+                        <UsersIcon className="w-4 h-4 text-emerald-600" />
+                        <span>Gestionar usuarios</span>
+                      </button>
+                    )}
+
+                    <button
+                      onClick={handleSignOut}
+                      className="w-full text-left px-3.5 py-2 hover:bg-rose-50 flex items-center gap-2 text-rose-700 border-t border-slate-100"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span>Cerrar sesión</span>
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Mobile Navigation Bar */}
-        <div className="md:hidden flex items-center justify-around border-t border-slate-100 px-2 py-1.5 bg-slate-50 text-xs">
+        {/* Mobile Navigation Bar — visible until the desktop nav takes over at lg */}
+        <div className="lg:hidden flex items-center justify-around border-t border-slate-100 px-2 py-1.5 bg-slate-50 text-xs">
           <button
             onClick={() => setActiveView('dashboard')}
             className={`p-1.5 rounded flex flex-col items-center ${
@@ -343,6 +492,8 @@ export default function App() {
           <DashboardView
             properties={properties}
             tasks={tasks}
+            financialEntries={financialEntries}
+            canViewFinancials={permissions?.canViewFinancials ?? false}
             onNavigate={(v) => setActiveView(v)}
             onNewProperty={() => {
               setPropertyToEdit(null);
@@ -394,8 +545,8 @@ export default function App() {
                 propertyTitle: prop.title,
                 assignedByDirector: true,
                 assignedTo: {
-                  name: CURRENT_AGENT.name,
-                  avatar: CURRENT_AGENT.avatar,
+                  name: user.name,
+                  avatar: user.avatar,
                 },
               });
               setIsTaskModalOpen(true);
@@ -425,6 +576,8 @@ export default function App() {
             onMoveTaskStatus={handleMoveTaskStatus}
           />
         )}
+
+        {activeView === 'users' && permissions?.canManageUsers && <UsersView />}
 
         {activeView === 'design-system' && <DesignSystemView />}
       </main>
@@ -460,8 +613,8 @@ export default function App() {
             propertyTitle: prop.title,
             assignedByDirector: true,
             assignedTo: {
-              name: CURRENT_AGENT.name,
-              avatar: CURRENT_AGENT.avatar,
+              name: user.name,
+              avatar: user.avatar,
             },
           });
           setIsTaskModalOpen(true);
@@ -503,7 +656,9 @@ export default function App() {
               Biblioteca de Componentes
             </button>
             <span className="text-slate-300">·</span>
-            <span>{CURRENT_AGENT.name} ({CURRENT_AGENT.role})</span>
+            <span>
+              {user.name} ({permissions?.label})
+            </span>
           </div>
         </div>
       </footer>

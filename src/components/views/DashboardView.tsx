@@ -1,9 +1,10 @@
 import React from 'react';
-import { Property, Task } from '../../types';
+import { Property, Task, FinancialEntry } from '../../types';
 import { MetricCard } from '../ui/Card';
 import { PropertyCard } from '../domain/PropertyCard';
 import { TaskCard } from '../domain/TaskCard';
 import { WeeklySummaryPanel } from '../domain/WeeklySummaryPanel';
+import { MonthlyFinancialsCard } from '../domain/MonthlyFinancialsCard';
 import { Button } from '../ui/Button';
 import {
   Building2,
@@ -17,6 +18,8 @@ import {
 interface DashboardViewProps {
   properties: Property[];
   tasks: Task[];
+  financialEntries: FinancialEntry[];
+  canViewFinancials: boolean;
   onNavigate: (view: 'dashboard' | 'properties' | 'tasks' | 'design-system') => void;
   onNewProperty: () => void;
   onNewTask: () => void;
@@ -28,6 +31,8 @@ interface DashboardViewProps {
 export const DashboardView: React.FC<DashboardViewProps> = ({
   properties,
   tasks,
+  financialEntries,
+  canViewFinancials,
   onNavigate,
   onNewProperty,
   onNewTask,
@@ -91,6 +96,58 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       </div>
 
+      {/* Agenda & Tareas Inminentes — arriba de todo, es lo accionable del día */}
+      <div className="bg-white rounded-xl border border-slate-200/90 p-4.5 shadow-xs">
+        <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-100">
+          <div className="flex items-center gap-2">
+            <CheckSquare className="w-4 h-4 text-emerald-600" />
+            <h3 className="text-sm font-bold text-slate-900">Agenda &amp; Tareas Inminentes</h3>
+            {pendingTasksList.length > 0 && (
+              <span className="text-[11px] font-mono font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full">
+                {pendingTasksList.length} pendientes
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={onNewTask}
+              leftIcon={<Plus className="w-3.5 h-3.5" />}
+            >
+              + Registrar
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onNavigate('tasks')}
+              className="text-xs text-slate-500 hover:text-slate-900 p-1 h-auto"
+            >
+              Ver todas ({tasks.length})
+            </Button>
+          </div>
+        </div>
+
+        <div className="mt-3.5">
+          {pendingTasksList.length === 0 ? (
+            <div className="py-8 text-center text-xs text-slate-400">
+              No hay tareas pendientes en este momento.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+              {pendingTasksList.map((task) => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  onToggleStatus={onToggleTaskStatus}
+                  onEdit={onEditTask}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Grid de Métricas Operativas */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
@@ -134,62 +191,24 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         />
       </div>
 
-      {/* Resumen Semanal de Productividad - Tareas Completadas vs. Promedio */}
-      <WeeklySummaryPanel
-        tasks={tasks}
-        onNavigateToTasks={() => onNavigate('tasks')}
-      />
+      {/* Misma franja: Resultado Financiero del Mes + Resumen Semanal de Productividad */}
+      <div
+        className={`grid gap-6 items-start ${
+          canViewFinancials ? 'grid-cols-1 xl:grid-cols-2' : 'grid-cols-1'
+        }`}
+      >
+        {canViewFinancials && <MonthlyFinancialsCard entries={financialEntries} />}
+
+        <WeeklySummaryPanel
+          tasks={tasks}
+          onNavigateToTasks={() => onNavigate('tasks')}
+        />
+      </div>
 
       {/* Two Column Layout: Urgent Tasks & Featured Properties */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: Tasks Section (1/3) */}
+        {/* Left Column: Keys & Signage (1/3) */}
         <div className="lg:col-span-1 space-y-4">
-          <div className="bg-white rounded-xl border border-slate-200/90 p-4.5">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <CheckSquare className="w-4 h-4 text-emerald-600" />
-                <h3 className="text-sm font-bold text-slate-900">Agenda & Tareas Inminentes</h3>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onNavigate('tasks')}
-                className="text-xs text-slate-500 hover:text-slate-900 p-1 h-auto"
-              >
-                Ver todas ({tasks.length})
-              </Button>
-            </div>
-
-            <div className="mt-3.5 space-y-3">
-              {pendingTasksList.length === 0 ? (
-                <div className="py-8 text-center text-xs text-slate-400">
-                  No hay tareas pendientes en este momento.
-                </div>
-              ) : (
-                pendingTasksList.map((task) => (
-                  <TaskCard
-                    key={task.id}
-                    task={task}
-                    onToggleStatus={onToggleTaskStatus}
-                    onEdit={onEditTask}
-                  />
-                ))
-              )}
-            </div>
-
-            <div className="mt-4 pt-3 border-t border-slate-100">
-              <Button
-                variant="secondary"
-                size="sm"
-                fullWidth
-                onClick={onNewTask}
-                leftIcon={<Plus className="w-3.5 h-3.5" />}
-              >
-                + Registrar Tarea u Orden
-              </Button>
-            </div>
-          </div>
-
           {/* Estado de Llaves y Carteles Card */}
           <div className="bg-white rounded-xl border border-slate-200/90 p-4.5">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">

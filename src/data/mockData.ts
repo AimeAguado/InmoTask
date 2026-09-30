@@ -1,4 +1,4 @@
-import { Property, Task, MetricCardData } from '../types';
+import { Property, Task, MetricCardData, FinancialEntry } from '../types';
 
 export const CURRENT_AGENT = {
   name: 'Natalia Aimé',
@@ -437,8 +437,123 @@ export const INITIAL_TASKS: Task[] = [
   },
 ];
 
-export const INITIAL_METRICS: MetricCardData[] = [
+// Fecha dentro del mes en curso, para que el resumen financiero siempre
+// represente el período que la aplicación está mostrando.
+const currentMonthDate = (day: number): string => {
+  const now = new Date();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  return `${now.getFullYear()}-${mm}-${String(day).padStart(2, '0')}`;
+};
+
+export const INITIAL_FINANCIAL_ENTRIES: FinancialEntry[] = [
   {
+    id: 'fin-1',
+    type: 'ingreso',
+    category: 'Comisiones por Venta',
+    concept: 'Comisión 3% por cierre de venta de lote en Pilar Golf Club',
+    amount: 2850000,
+    date: currentMonthDate(8),
+    propertyCode: 'INM-5280',
+  },
+  {
+    id: 'fin-2',
+    type: 'ingreso',
+    category: 'Comisiones por Venta',
+    concept: 'Comisión por cierre de venta de PH en Palermo',
+    amount: 1940000,
+    date: currentMonthDate(17),
+  },
+  {
+    id: 'fin-3',
+    type: 'ingreso',
+    category: 'Comisiones por Alquiler',
+    concept: 'Honorarios de Rental por gestión de 8 contratos de alquiler',
+    amount: 1320000,
+    date: currentMonthDate(5),
+  },
+  {
+    id: 'fin-4',
+    type: 'ingreso',
+    category: 'Comisiones por Alquiler',
+    concept: 'Comisiones de alquileres firmados en el mes',
+    amount: 1780000,
+    date: currentMonthDate(22),
+  },
+  {
+    id: 'fin-5',
+    type: 'ingreso',
+    category: 'Honorarios de Administración',
+    concept: 'Honorarios de administración de cartera de 12 unidades',
+    amount: 2460000,
+    date: currentMonthDate(3),
+  },
+  {
+    id: 'fin-6',
+    type: 'egreso',
+    category: 'Marketing y Cartelería',
+    concept: 'Impresión e instalación de carteles en frentes',
+    amount: 385000,
+    date: currentMonthDate(12),
+  },
+  {
+    id: 'fin-7',
+    type: 'egreso',
+    category: 'Marketing y Cartelería',
+    concept: 'Pauta digital y fotografía de propiedades',
+    amount: 240000,
+    date: currentMonthDate(19),
+  },
+  {
+    id: 'fin-8',
+    type: 'egreso',
+    category: 'Sueldos y Cargas Sociales',
+    concept: 'Sueldos de agentes y personal de recepción',
+    amount: 3150000,
+    date: currentMonthDate(4),
+  },
+  {
+    id: 'fin-9',
+    type: 'egreso',
+    category: 'Sueldos y Cargas Sociales',
+    concept: 'Aportes patronales del mes',
+    amount: 890000,
+    date: currentMonthDate(4),
+  },
+  {
+    id: 'fin-10',
+    type: 'egreso',
+    category: 'Alquileres y Servicios',
+    concept: 'Alquiler de oficina central',
+    amount: 650000,
+    date: currentMonthDate(2),
+  },
+  {
+    id: 'fin-11',
+    type: 'egreso',
+    category: 'Alquileres y Servicios',
+    concept: 'Servicios, expensas e intendencia',
+    amount: 185000,
+    date: currentMonthDate(10),
+  },
+  {
+    id: 'fin-12',
+    type: 'egreso',
+    category: 'Tecnología y Software',
+    concept: 'CRM, portals inmobiliarios y licencias',
+    amount: 95000,
+    date: currentMonthDate(6),
+  },
+  {
+    id: 'fin-13',
+    type: 'egreso',
+    category: 'Impuestos y Tasas',
+    concept: 'Retenciones, sellos y tasas municipales',
+    amount: 585000,
+    date: currentMonthDate(15),
+  },
+];
+
+export const INITIAL_METRICS: MetricCardData[] = [  {
     id: 'm1',
     title: 'Inmuebles Activos',
     value: '24',

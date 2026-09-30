@@ -92,7 +92,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({
             if (searchTerm.trim().length > 0) setIsOpen(true);
           }}
           placeholder="Buscar por código, dirección o título... (⌘K)"
-          className="w-full sm:w-64 md:w-72 lg:w-80 bg-slate-100/90 hover:bg-slate-100 text-slate-900 text-xs rounded-lg border border-slate-200 pl-8.5 pr-8 py-1.5 h-8.5 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white focus:w-80 lg:focus:w-96 transition-all duration-200"
+          className="w-full min-w-0 bg-slate-100/90 hover:bg-slate-100 text-slate-900 text-xs rounded-lg border border-slate-200 pl-8.5 pr-8 py-1.5 h-8.5 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white transition-all duration-200"
         />
 
         {searchTerm ? (
@@ -116,7 +116,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({
 
       {/* Real-time Results Dropdown Popup */}
       {isOpen && searchTerm.trim().length > 0 && (
-        <div className="absolute left-0 sm:right-0 sm:left-auto top-full mt-1.5 w-[320px] sm:w-[420px] max-w-[90vw] bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50 animate-in fade-in zoom-in-95 text-left overflow-hidden">
+        <div className="absolute left-0 sm:right-0 sm:left-auto top-full mt-1.5 w-full sm:w-[420px] max-w-[min(420px,92vw)] bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50 animate-in fade-in zoom-in-95 text-left overflow-hidden">
           {/* Header of results */}
           <div className="px-3.5 py-1.5 border-b border-slate-100 flex items-center justify-between text-[11px] text-slate-500 bg-slate-50/70">
             <span>

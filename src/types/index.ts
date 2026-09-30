@@ -53,7 +53,7 @@ export interface Task {
   assignedByDirector?: boolean;
   assignedTo: {
     name: string;
-    avatar: string;
+    avatar?: string;
   };
   completedAt?: string;
 }
@@ -66,4 +66,66 @@ export interface MetricCardData {
   trend?: 'up' | 'down' | 'neutral';
   timeframe?: string;
   iconName: string;
+}
+
+export type FinancialEntryType = 'ingreso' | 'egreso';
+
+export type FinancialCategory =
+  | 'Comisiones por Venta'
+  | 'Comisiones por Alquiler'
+  | 'Honorarios de Administración'
+  | 'Marketing y Cartelería'
+  | 'Sueldos y Cargas Sociales'
+  | 'Alquileres y Servicios'
+  | 'Tecnología y Software'
+  | 'Impuestos y Tasas';
+
+export interface FinancialEntry {
+  id: string;
+  type: FinancialEntryType;
+  category: FinancialCategory;
+  concept: string;
+  amount: number;
+  date: string; // YYYY-MM-DD
+  propertyCode?: string;
+}
+
+export type UserRole = 'asesor' | 'jefatura';
+
+export interface RolePermissions {
+  label: string;
+  description: string;
+  canViewFinancials: boolean;
+  canManageUsers: boolean;
+}
+
+export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
+  asesor: {
+    label: 'Asesor',
+    description: 'Opera la cartera de inmuebles y la agenda de tareas.',
+    canViewFinancials: false,
+    canManageUsers: false,
+  },
+  jefatura: {
+    label: 'Jefatura',
+    description: 'Acceso completo, incluyendo resultados financieros y alta de usuarios.',
+    canViewFinancials: true,
+    canManageUsers: true,
+  },
+};
+
+export interface AppUser {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  phone?: string;
+  license?: string;
+  avatar?: string;
+  active: boolean;
+  createdAt: string; // YYYY-MM-DD
+}
+
+export interface StoredUser extends AppUser {
+  passwordDigest: string;
 }
