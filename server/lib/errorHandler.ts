@@ -50,6 +50,16 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
     return;
   }
 
+  // Body demasiado grande: body-parser aborta el request antes de que llegue a
+  // las rutas. Se detecta por estructura porque la clase no es una dependencia
+  // directa; sin esto el usuario recibía un 500 confuso en vez de un 413.
+  if (typeof err === 'object' && err !== null && (err as { type?: string }).type === 'entity.too.large') {
+    res.status(413).json({
+      error: { code: 'payload_too_large', message: 'El contenido enviado es demasiado grande.' },
+    });
+    return;
+  }
+
   console.error('[error]', err);
   res.status(500).json({
     error: {

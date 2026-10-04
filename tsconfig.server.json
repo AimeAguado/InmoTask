@@ -13,5 +13,5 @@
     "forceConsistentCasingInFileNames": true,
     "noEmit": true
   },
-  "include": ["server/**/*.ts", "src/types/**/*.ts", "src/data/**/*.ts"]
+  "include": ["server/**/*.ts", "api/**/*.ts", "src/types/**/*.ts", "src/data/**/*.ts"]
 }

@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Property, PropertyType, OperationType, PropertyStatus, KeysLocation } from '../../types';
 import { PropertyCard } from '../domain/PropertyCard';
 import { Table, Column } from '../ui/Table';
+import { formatPrice, hasPrice } from '../../lib/format';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { FilterBar, ActiveFilterTag } from '../ui/FilterBar';
@@ -151,6 +152,22 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
       render: (op) => (
         <span className="text-xs font-medium px-2 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-200/80">
           {op}
+        </span>
+      ),
+    },
+    {
+      id: 'price',
+      header: 'Precio',
+      accessor: 'price',
+      width: '130px',
+      sortable: true,
+      render: (_, p) => (
+        <span
+          className={`text-xs tabular-nums whitespace-nowrap ${
+            hasPrice(p.price) ? 'font-semibold text-slate-900' : 'italic text-slate-400'
+          }`}
+        >
+          {formatPrice(p.price, p.currency)}
         </span>
       ),
     },

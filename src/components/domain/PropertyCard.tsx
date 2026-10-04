@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Property } from '../../types';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
-import { MapPin, Bed, Bath, Maximize2, Car, Eye, Calendar, Sparkles, Key, Flag, Trash2 } from 'lucide-react';
+import { MapPin, Bed, Bath, Maximize2, Car, Eye, Calendar, Sparkles, Key, Flag, Trash2, Tag } from 'lucide-react';
+import { formatPrice, hasPrice } from '../../lib/format';
 
 interface PropertyCardProps {
   property: Property;
@@ -103,6 +104,24 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
           <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-1.5">
             <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
             <span className="truncate">{property.address}</span>
+          </div>
+
+          {/* Precio: va arriba, antes de las medidas, porque es el primer dato
+              que se mira de una publicación. Las medidas se leen en la ficha. */}
+          <div className="mt-2.5 flex items-baseline gap-1.5">
+            <Tag className="w-3.5 h-3.5 text-emerald-600 shrink-0 translate-y-0.5" />
+            <span
+              className={`text-base font-bold tabular-nums ${
+                hasPrice(property.price) ? 'text-slate-900' : 'text-slate-400 font-semibold italic'
+              }`}
+              title={
+                hasPrice(property.price)
+                  ? `Precio de ${property.operation.toLowerCase()}`
+                  : 'La publicación no tiene precio cargado'
+              }
+            >
+              {formatPrice(property.price, property.currency)}
+            </span>
           </div>
 
           {/* Physical Metrics Bar */}

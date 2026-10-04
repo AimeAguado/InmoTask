@@ -36,6 +36,30 @@ export const connectDb = async (): Promise<typeof mongoose> => {
   return mongoose;
 };
 
+/**
+ * Asegura la conexión sin reconectar en cada request.
+ *
+ * En Vercel la función corre como serverless: una instancia "warm" atiende varias
+ * peticiones seguidas y el proceso vive, pero cada "cold start" arranca de cero.
+ * mongoose.connect() por request pagaría un handshake a Atlas en cada llamada y
+ * agotaría el pool de conexiones; por eso la promesa se cachea y sólo se crea
+ * una vez. Si la conexión se cae, el catch descarta la promesa cacheada para que
+ * el próximo request pueda reintentar en vez de reutilizar un estado fallido.
+ */
+let pendingConnection: Promise<typeof mongoose> | null = null;
+
+export const ensureDb = async (): Promise<typeof mongoose> => {
+  if (mongoose.connection.readyState === 1) return mongoose;
+
+  pendingConnection ??= connectDb().catch((err: unknown) => {
+    pendingConnection = null;
+    throw err;
+  });
+
+  return pendingConnection;
+};
+
 export const disconnectDb = async (): Promise<void> => {
+  pendingConnection = null;
   await mongoose.disconnect();
 };
