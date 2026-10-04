@@ -1,6 +1,6 @@
 import { Schema, model } from 'mongoose';
 import type { HydratedDocument, InferSchemaType } from 'mongoose';
-import type { TaskCategory, TaskPriority, TaskStatus } from '../../src/types';
+import type { TaskCategory, TaskPriority, TaskStatus } from '../../src/types/index.js';
 
 const TASK_CATEGORIES: readonly TaskCategory[] = [
   'Visita',

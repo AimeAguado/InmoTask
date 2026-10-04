@@ -1,14 +1,14 @@
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
-import { config } from './config';
-import { errorHandler, notFoundHandler } from './lib/errorHandler';
-import { ensureDb } from './db';
-import { authRouter } from './routes/auth.routes';
-import { usersRouter } from './routes/users.routes';
-import { propertiesRouter } from './routes/properties.routes';
-import { tasksRouter } from './routes/tasks.routes';
-import { financialsRouter } from './routes/financials.routes';
+import { config } from './config.js';
+import { errorHandler, notFoundHandler } from './lib/errorHandler.js';
+import { ensureDb } from './db.js';
+import { authRouter } from './routes/auth.routes.js';
+import { usersRouter } from './routes/users.routes.js';
+import { propertiesRouter } from './routes/properties.routes.js';
+import { tasksRouter } from './routes/tasks.routes.js';
+import { financialsRouter } from './routes/financials.routes.js';
 
 export const createApp = (): express.Express => {
   const app = express();

@@ -15,11 +15,11 @@
  */
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
-import { connectDb, disconnectDb } from './db';
-import { config } from './config';
-import { InmobiliariaModel } from './models/Inmobiliaria';
-import { AppUserModel } from './models/AppUser';
-import { ApiError } from './lib/http';
+import { connectDb, disconnectDb } from './db.js';
+import { config } from './config.js';
+import { InmobiliariaModel } from './models/Inmobiliaria.js';
+import { AppUserModel } from './models/AppUser.js';
+import { ApiError } from './lib/http.js';
 
 const SALT_ROUNDS = 12;
 const MIN_PASSWORD_LENGTH = 8;

@@ -1,6 +1,6 @@
 import { Schema, model } from 'mongoose';
 import type { HydratedDocument, InferSchemaType } from 'mongoose';
-import type { UserRole } from '../../src/types';
+import type { UserRole } from '../../src/types/index.js';
 
 const USER_ROLES: readonly UserRole[] = ['admin', 'asesor'];
 

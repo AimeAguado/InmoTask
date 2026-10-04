@@ -1,12 +1,12 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
-import { AppUserModel } from '../models/AppUser';
-import { serializeUser } from '../lib/serialize';
-import { ApiError, asyncHandler } from '../lib/http';
-import { asBoolean, asEnum, asString } from '../lib/validation';
-import { requireAuth, requireAdmin, scope } from '../middleware/auth';
-import { saveAvatar } from '../lib/avatarStorage';
-import type { UserRole } from '../../src/types';
+import { AppUserModel } from '../models/AppUser.js';
+import { serializeUser } from '../lib/serialize.js';
+import { ApiError, asyncHandler } from '../lib/http.js';
+import { asBoolean, asEnum, asString } from '../lib/validation.js';
+import { requireAuth, requireAdmin, scope } from '../middleware/auth.js';
+import { saveAvatar } from '../lib/avatarStorage.js';
+import type { UserRole } from '../../src/types/index.js';
 
 const ROLES: readonly UserRole[] = ['admin', 'asesor'];
 const SALT_ROUNDS = 12;

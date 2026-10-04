@@ -20,11 +20,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import mongoose from 'mongoose';
-import { connectDb, disconnectDb } from './db';
-import { config } from './config';
-import { PropertyModel } from './models/Property';
-import { CURRENT_AGENT } from '../src/data/mockData';
-import type { Currency, PropertyType } from '../src/types';
+import { connectDb, disconnectDb } from './db.js';
+import { config } from './config.js';
+import { PropertyModel } from './models/Property.js';
+import { CURRENT_AGENT } from '../src/data/mockData.js';
+import type { Currency, PropertyType } from '../src/types/index.js';
 
 const DRY_RUN = process.argv.includes('--dry-run');
 const DATA_FILE = path.join(path.dirname(fileURLToPath(import.meta.url)), 'data', 'captacion.json');

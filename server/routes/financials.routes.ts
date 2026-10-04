@@ -1,10 +1,10 @@
 import { Router } from 'express';
-import { FinancialEntryModel } from '../models/FinancialEntry';
-import { serializeEntry } from '../lib/serialize';
-import { asyncHandler } from '../lib/http';
-import { asEnum, asYmdDate } from '../lib/validation';
-import { requireAuth, requireAdmin, scope } from '../middleware/auth';
-import type { FinancialCategory, FinancialEntryType } from '../../src/types';
+import { FinancialEntryModel } from '../models/FinancialEntry.js';
+import { serializeEntry } from '../lib/serialize.js';
+import { asyncHandler } from '../lib/http.js';
+import { asEnum, asYmdDate } from '../lib/validation.js';
+import { requireAuth, requireAdmin, scope } from '../middleware/auth.js';
+import type { FinancialCategory, FinancialEntryType } from '../../src/types/index.js';
 
 const ENTRY_TYPES: readonly FinancialEntryType[] = ['ingreso', 'egreso'];
 

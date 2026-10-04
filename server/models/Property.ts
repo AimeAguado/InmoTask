@@ -7,7 +7,7 @@ import type {
   PropertyStatus,
   PropertyType,
   SignageStatus,
-} from '../../src/types';
+} from '../../src/types/index.js';
 
 // Los valores salen de la app para que el enum de Mongo y la UI no puedan
 // divergir. El anotado con el tipo unión hace que TS falle si alguien agrega un

@@ -1,11 +1,11 @@
 import { Router } from 'express';
-import { TaskModel } from '../models/Task';
-import { PropertyModel } from '../models/Property';
-import { serializeTask } from '../lib/serialize';
-import { ApiError, asyncHandler } from '../lib/http';
-import { asBoolean, asEnum, asHhMm, asString, asYmdDate, stripServerFields } from '../lib/validation';
-import { requireAuth, scope } from '../middleware/auth';
-import type { TaskCategory, TaskPriority, TaskStatus } from '../../src/types';
+import { TaskModel } from '../models/Task.js';
+import { PropertyModel } from '../models/Property.js';
+import { serializeTask } from '../lib/serialize.js';
+import { ApiError, asyncHandler } from '../lib/http.js';
+import { asBoolean, asEnum, asHhMm, asString, asYmdDate, stripServerFields } from '../lib/validation.js';
+import { requireAuth, scope } from '../middleware/auth.js';
+import type { TaskCategory, TaskPriority, TaskStatus } from '../../src/types/index.js';
 
 const CATEGORIES: readonly TaskCategory[] = [
   'Visita',

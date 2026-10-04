@@ -1,6 +1,6 @@
 import { Schema, model } from 'mongoose';
 import type { HydratedDocument, InferSchemaType } from 'mongoose';
-import type { FinancialCategory, FinancialEntryType } from '../../src/types';
+import type { FinancialCategory, FinancialEntryType } from '../../src/types/index.js';
 
 const ENTRY_TYPES: readonly FinancialEntryType[] = ['ingreso', 'egreso'];
 

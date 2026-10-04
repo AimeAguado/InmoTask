@@ -9,7 +9,7 @@
  */
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { ApiError } from './http';
+import { ApiError } from './http.js';
 import { fileURLToPath } from 'node:url';
 
 const LIB_DIR = path.dirname(fileURLToPath(import.meta.url));

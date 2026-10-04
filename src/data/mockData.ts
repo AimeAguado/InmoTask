@@ -1,4 +1,4 @@
-import { Property, Task, MetricCardData, FinancialEntry } from '../types';
+import { Property, Task, MetricCardData, FinancialEntry } from '../types/index.js';
 
 export const CURRENT_AGENT = {
   name: 'Natalia Aimé',

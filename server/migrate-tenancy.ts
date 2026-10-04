@@ -21,13 +21,13 @@
  * Es idempotente en su totalidad. Se puede correr las veces que haga falta.
  */
 import mongoose from 'mongoose';
-import { connectDb, disconnectDb } from './db';
-import { config } from './config';
-import { AppUserModel } from './models/AppUser';
-import { PropertyModel } from './models/Property';
-import { TaskModel } from './models/Task';
-import { FinancialEntryModel } from './models/FinancialEntry';
-import { InmobiliariaModel } from './models/Inmobiliaria';
+import { connectDb, disconnectDb } from './db.js';
+import { config } from './config.js';
+import { AppUserModel } from './models/AppUser.js';
+import { PropertyModel } from './models/Property.js';
+import { TaskModel } from './models/Task.js';
+import { FinancialEntryModel } from './models/FinancialEntry.js';
+import { InmobiliariaModel } from './models/Inmobiliaria.js';
 
 const APPLY = process.argv.includes('--apply');
 

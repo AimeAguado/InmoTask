@@ -1,12 +1,12 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
-import { AppUserModel } from '../models/AppUser';
-import { InmobiliariaModel } from '../models/Inmobiliaria';
-import { serializeUser } from '../lib/serialize';
-import { ApiError, asyncHandler } from '../lib/http';
-import { asString } from '../lib/validation';
-import { saveAvatar } from '../lib/avatarStorage';
-import { clearSessionCookie, requireAuth, setSessionCookie, signSession } from '../middleware/auth';
+import { AppUserModel } from '../models/AppUser.js';
+import { InmobiliariaModel } from '../models/Inmobiliaria.js';
+import { serializeUser } from '../lib/serialize.js';
+import { ApiError, asyncHandler } from '../lib/http.js';
+import { asString } from '../lib/validation.js';
+import { saveAvatar } from '../lib/avatarStorage.js';
+import { clearSessionCookie, requireAuth, setSessionCookie, signSession } from '../middleware/auth.js';
 
 const SALT_ROUNDS = 12;
 

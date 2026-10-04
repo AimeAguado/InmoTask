@@ -10,19 +10,19 @@
  */
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
-import { connectDb, disconnectDb } from './db';
-import { config } from './config';
-import { PropertyModel } from './models/Property';
-import { TaskModel } from './models/Task';
-import { FinancialEntryModel } from './models/FinancialEntry';
-import { AppUserModel } from './models/AppUser';
-import { InmobiliariaModel } from './models/Inmobiliaria';
+import { connectDb, disconnectDb } from './db.js';
+import { config } from './config.js';
+import { PropertyModel } from './models/Property.js';
+import { TaskModel } from './models/Task.js';
+import { FinancialEntryModel } from './models/FinancialEntry.js';
+import { AppUserModel } from './models/AppUser.js';
+import { InmobiliariaModel } from './models/Inmobiliaria.js';
 import {
   INITIAL_PROPERTIES,
   INITIAL_TASKS,
   INITIAL_FINANCIAL_ENTRIES,
-} from '../src/data/mockData';
-import type { AppUser, UserRole } from '../src/types';
+} from '../src/data/mockData.js';
+import type { AppUser, UserRole } from '../src/types/index.js';
 
 const DEMO_PASSWORD = 'inmotask';
 const SALT_ROUNDS = 12;

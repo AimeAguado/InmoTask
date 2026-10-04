@@ -1,7 +1,7 @@
 import type { ErrorRequestHandler, RequestHandler } from 'express';
 import mongoose from 'mongoose';
-import { ApiError } from './http';
-import { config } from '../config';
+import { ApiError } from './http.js';
+import { config } from '../config.js';
 
 export const notFoundHandler: RequestHandler = (req, res) => {
   res.status(404).json({

@@ -1,6 +1,6 @@
 import { setServers } from 'node:dns';
 import mongoose from 'mongoose';
-import { config } from './config';
+import { config } from './config.js';
 
 export const connectDb = async (): Promise<typeof mongoose> => {
   mongoose.set('strictQuery', true);

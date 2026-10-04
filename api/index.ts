@@ -1,5 +1,5 @@
-import { createApp } from '../server/app';
-import { config } from '../server/config';
+import { createApp } from '../server/app.js';
+import { config } from '../server/config.js';
 
 /**
  * Entry point de la API como serverless function de Vercel.

@@ -1,9 +1,9 @@
 import { Router } from 'express';
 import path from 'node:path';
-import { PropertyModel } from '../models/Property';
-import { serializeProperty } from '../lib/serialize';
-import { ApiError, asyncHandler } from '../lib/http';
-import { photoFoldersOf, removePhotoFolders } from '../lib/propertyPhotos';
+import { PropertyModel } from '../models/Property.js';
+import { serializeProperty } from '../lib/serialize.js';
+import { ApiError, asyncHandler } from '../lib/http.js';
+import { photoFoldersOf, removePhotoFolders } from '../lib/propertyPhotos.js';
 import {
   asBoolean,
   asEnum,
@@ -11,8 +11,8 @@ import {
   asString,
   asStringArray,
   stripServerFields,
-} from '../lib/validation';
-import { requireAdmin, requireAuth, scope } from '../middleware/auth';
+} from '../lib/validation.js';
+import { requireAdmin, requireAuth, scope } from '../middleware/auth.js';
 import type {
   Currency,
   KeysLocation,
@@ -20,7 +20,7 @@ import type {
   PropertyStatus,
   PropertyType,
   SignageStatus,
-} from '../../src/types';
+} from '../../src/types/index.js';
 
 const PROPERTY_TYPES: readonly PropertyType[] = [
   'Casa',

@@ -1,9 +1,9 @@
-import type { AppUserDoc } from '../models/AppUser';
+import type { AppUserDoc } from '../models/AppUser.js';
 import mongoose from 'mongoose';
-import type { FinancialEntryDoc } from '../models/FinancialEntry';
-import type { PropertyDoc } from '../models/Property';
-import type { TaskDoc } from '../models/Task';
-import type { AppUser, FinancialEntry, Property, Task } from '../../src/types';
+import type { FinancialEntryDoc } from '../models/FinancialEntry.js';
+import type { PropertyDoc } from '../models/Property.js';
+import type { TaskDoc } from '../models/Task.js';
+import type { AppUser, FinancialEntry, Property, Task } from '../../src/types/index.js';
 
 /**
  * La UI trabaja con fechas como 'YYYY-MM-DD' (ver src/types). Mongo las guarda

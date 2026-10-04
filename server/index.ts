@@ -1,6 +1,6 @@
-import { createApp } from './app';
-import { config } from './config';
-import { connectDb, disconnectDb } from './db';
+import { createApp } from './app.js';
+import { config } from './config.js';
+import { connectDb, disconnectDb } from './db.js';
 
 const main = async (): Promise<void> => {
   await connectDb();

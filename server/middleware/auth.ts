@@ -1,11 +1,11 @@
 import type { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { config } from '../config';
-import { ApiError } from '../lib/http';
-import { AppUserModel } from '../models/AppUser';
-import { InmobiliariaModel } from '../models/Inmobiliaria';
-import { serializeUser } from '../lib/serialize';
-import type { AppUser, UserRole } from '../../src/types';
+import { config } from '../config.js';
+import { ApiError } from '../lib/http.js';
+import { AppUserModel } from '../models/AppUser.js';
+import { InmobiliariaModel } from '../models/Inmobiliaria.js';
+import { serializeUser } from '../lib/serialize.js';
+import type { AppUser, UserRole } from '../../src/types/index.js';
 
 export const SESSION_COOKIE = 'inmotask_session';
 const SESSION_MAX_AGE_MS = 1000 * 60 * 60 * 12; // 12 h
