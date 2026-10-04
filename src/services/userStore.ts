@@ -1,5 +1,9 @@
 import { AppUser, UserRole } from '../types';
 import { ApiRequestError, authApi, usersApi } from './api';
+import type { UpdateUserInput } from './api';
+
+export type { UpdateUserInput };
+
 
 /**
  * La sesión vive en una cookie httpOnly que el backend firma (JWT) y en la que
@@ -56,7 +60,8 @@ export const listUsers = async (): Promise<AppUser[]> => {
 };
 
 export type CreateUserInput = {
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   password: string;
   role: UserRole;
@@ -79,6 +84,12 @@ export const createUser = async (input: CreateUserInput): Promise<CreateUserResu
     }
     return { ok: false, reason: 'invalid' };
   }
+};
+
+/** Un admin corrige los datos de un asesor de su propia inmobiliaria. */
+export const updateUser = async (id: string, input: UpdateUserInput): Promise<AppUser> => {
+  const { user } = await usersApi.update(id, input);
+  return user;
 };
 
 export const setUserActive = async (id: string, active: boolean): Promise<void> => {

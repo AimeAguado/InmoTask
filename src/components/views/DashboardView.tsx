@@ -72,7 +72,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-0.5">
-            Organización de llaves, cartelería en calle y visitas a inmuebles coordinadas por jefatura.
+            Organización de llaves, cartelería en calle y visitas a inmuebles coordinadas por administración.
           </p>
         </div>
 

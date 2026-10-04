@@ -6,6 +6,8 @@ import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { Button } from '../ui/Button';
 import { UserAvatar } from '../ui/UserAvatar';
+import { ProfileModal } from '../domain/ProfileModal';
+import type { ProfileDraft } from '../domain/ProfileModal';
 import {
   UserPlus,
   Users,
@@ -20,10 +22,11 @@ import {
   Power,
   Pencil,
   X,
+  Building2,
 } from 'lucide-react';
 
 const ROLE_ICON: Record<UserRole, typeof ShieldCheck> = {
-  jefatura: ShieldCheck,
+  admin: ShieldCheck,
   asesor: Briefcase,
 };
 
@@ -36,7 +39,8 @@ const formatDate = (iso: string): string => {
 const NewUserForm: React.FC<{ onDone: () => void }> = ({ onDone }) => {
   const { addUser } = useAuth();
   const [form, setForm] = useState({
-    name: '',
+    firstName: '',
+    lastName: '',
     email: '',
     password: '',
     role: 'asesor' as UserRole,
@@ -60,7 +64,8 @@ const NewUserForm: React.FC<{ onDone: () => void }> = ({ onDone }) => {
 
     setIsSubmitting(true);
     const result = await addUser({
-      name: form.name,
+      firstName: form.firstName,
+      lastName: form.lastName,
       email: form.email,
       password: form.password,
       role: form.role,
@@ -102,10 +107,17 @@ const NewUserForm: React.FC<{ onDone: () => void }> = ({ onDone }) => {
 
       <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Input
-          label="Nombre y apellido"
-          placeholder="Ej. Paula Gómez"
-          value={form.name}
-          onChange={update('name')}
+          label="Nombre"
+          placeholder="Paula"
+          value={form.firstName}
+          onChange={update('firstName')}
+          required
+        />
+        <Input
+          label="Apellido"
+          placeholder="Gómez"
+          value={form.lastName}
+          onChange={update('lastName')}
           required
         />
         <Input
@@ -131,7 +143,7 @@ const NewUserForm: React.FC<{ onDone: () => void }> = ({ onDone }) => {
           onChange={update('role')}
           options={[
             { value: 'asesor', label: 'Asesor' },
-            { value: 'jefatura', label: 'Jefatura' },
+            { value: 'admin', label: 'Administrador' },
           ]}
           helperText={ROLE_PERMISSIONS[form.role].description}
         />
@@ -184,10 +196,29 @@ const NewUserForm: React.FC<{ onDone: () => void }> = ({ onDone }) => {
 };
 
 export const UsersView: React.FC = () => {
-  const { users, user: currentUser, toggleUserActive, changeUserRole } = useAuth();
+  const { users, user: currentUser, toggleUserActive, changeUserRole, updateUser } = useAuth();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Edicion de los datos de un asesor (nombre, apellido, telefono y foto).
+  const [userToEdit, setUserToEdit] = useState<AppUser | null>(null);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+
+  const handleSaveEdit = async (draft: ProfileDraft): Promise<void> => {
+    if (!userToEdit) return;
+    setIsSavingEdit(true);
+    setEditError(null);
+    try {
+      await updateUser(userToEdit.id, draft);
+      setUserToEdit(null);
+    } catch (err) {
+      setEditError(toMessage(err));
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
 
   // Los controles se bloquean sólo sobre la fila que se está actualizando: el
   // resto de la lista sigue siendo navegable mientras corre la petición.
@@ -229,7 +260,7 @@ export const UsersView: React.FC = () => {
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-0.5">
-            Alta de cuentas y asignación de roles. Visible únicamente para el rol de Jefatura.
+            Alta de cuentas y asignación de roles. Sólo el administrador de cada inmobiliaria puede gestionarlos, y un asesor nunca ve cuentas de otra empresa.
           </p>
         </div>
 
@@ -302,6 +333,12 @@ export const UsersView: React.FC = () => {
                         {u.license}
                       </span>
                     )}
+                    {/* La inmobiliaria de alta: con varias empresas en el mismo
+                        sistema es el dato que define a qué cartera pertenece. */}
+                    <span className="flex items-center gap-1 font-semibold text-slate-600">
+                      <Building2 className="w-3 h-3 text-emerald-600" />
+                      {u.inmoviliaria || 'Sin inmobiliaria'}
+                    </span>
                     <span className="flex items-center gap-1">
                       <CalendarDays className="w-3 h-3 text-slate-400" />
                       {formatDate(u.createdAt)}
@@ -315,13 +352,27 @@ export const UsersView: React.FC = () => {
                 <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
                   <RoleIcon
                     className={`w-3.5 h-3.5 ${
-                      u.role === 'jefatura' ? 'text-emerald-600' : 'text-slate-400'
+                      u.role === 'admin' ? 'text-emerald-600' : 'text-slate-400'
                     }`}
                   />
                   <span className="hidden xl:inline max-w-[180px] truncate">
                     {permissions.canManageUsers ? 'Finanzas + usuarios' : 'Cartera y tareas'}
                   </span>
                 </div>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={pendingId === u.id}
+                  onClick={() => {
+                    setEditError(null);
+                    setUserToEdit(u);
+                  }}
+                  title="Editar nombre, apellido, telefono y foto"
+                  leftIcon={<Pencil className="w-3.5 h-3.5" />}
+                >
+                  Editar
+                </Button>
 
                 <Select
                   value={u.role}
@@ -330,7 +381,7 @@ export const UsersView: React.FC = () => {
                   className="!h-8 !text-xs !py-0 !w-auto min-w-[7.5rem]"
                   options={[
                     { value: 'asesor', label: 'Asesor' },
-                    { value: 'jefatura', label: 'Jefatura' },
+                    { value: 'admin', label: 'Administrador' },
                   ]}
                 />
 
@@ -363,11 +414,26 @@ export const UsersView: React.FC = () => {
         })}
       </div>
 
+      {userToEdit && (
+        <ProfileModal
+          isOpen
+          onClose={() => {
+            setUserToEdit(null);
+            setEditError(null);
+          }}
+          user={userToEdit}
+          inmobiliaria={userToEdit.inmoviliaria}
+          isSaving={isSavingEdit}
+          error={editError ?? undefined}
+          onSubmit={handleSaveEdit}
+        />
+      )}
+
       <p className="text-[11px] text-slate-400 flex items-start gap-2 px-1">
         <Pencil className="w-3.5 h-3.5 shrink-0 mt-px" />
         <span>
           No podés cambiar tu propio rol ni desactivar tu cuenta: así la aplicación siempre queda
-          con al menos una jefatura activa.
+          con al menos un administrador activo.
         </span>
       </p>
     </div>

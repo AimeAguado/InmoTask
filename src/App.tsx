@@ -12,6 +12,8 @@ import { DesignSystemView } from './components/views/DesignSystemView';
 import { PropertyModal } from './components/domain/PropertyModal';
 import { PropertyDetailModal } from './components/domain/PropertyDetailModal';
 import { TaskModal } from './components/domain/TaskModal';
+import { DeletePropertyModal } from './components/domain/DeletePropertyModal';
+import { ProfileModal, ProfileDraft } from './components/domain/ProfileModal';
 import { GlobalSearch } from './components/ui/GlobalSearch';
 import { UserAvatar } from './components/ui/UserAvatar';
 import { NotificationsBell, getUrgentTasks } from './components/ui/NotificationsBell';
@@ -29,12 +31,20 @@ import {
   LogOut,
   ChevronUp,
   Loader2,
+  UserCog,
 } from 'lucide-react';
 
 type ViewMode = 'dashboard' | 'properties' | 'tasks' | 'design-system' | 'users';
 
 export default function App() {
-  const { user, permissions, isAuthenticated, isBootstrapping, signOut } = useAuth();
+  const {
+    user,
+    permissions,
+    isAuthenticated,
+    isBootstrapping,
+    signOut,
+    updateProfile,
+  } = useAuth();
   // Main Data States (Operational Real Estate: Properties & Internal Tasks)
   const [properties, setProperties] = useState<Property[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -55,6 +65,15 @@ export default function App() {
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
   const [taskInitialDate, setTaskInitialDate] = useState<string | undefined>(undefined);
 
+  // Ojo con el orden: App tiene dos returns tempranos (isBootstrapping y el
+  // login) más abajo. Todo useState/useEffect tiene que declararse ANTES de
+  // ellos, o al autenticarse el componente ejecutará más hooks que en el render
+  // anterior y React revienta con "Rendered more hooks than during the previous
+  // render", dejando #root vacío.
+  const [isDeletePropertyOpen, setIsDeletePropertyOpen] = useState(false);
+  const [propertyToDelete, setPropertyToDelete] = useState<Property | null>(null);
+  const [isDeletingProperty, setIsDeletingProperty] = useState(false);
+
   // Global Real-time Search State
   const [globalSearchQuery, setGlobalSearchQuery] = useState('');
 
@@ -64,6 +83,11 @@ export default function App() {
   // Navbar User Menu State
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
+
+  // Perfil propio: nombre, apellido, teléfono y foto.
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [profileError, setProfileError] = useState('');
 
   const urgentTasks = getUrgentTasks(tasks);
 
@@ -110,7 +134,7 @@ export default function App() {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  // Finanzas es un endpoint de jefatura: pedirlo siempre devolvería 403 para un
+  // Finanzas es un endpoint de admin: pedirlo siempre devolvería 403 para un
   // asesor y ensuciaría la consola con un error esperado.
   const canSeeFinancials = permissions?.canViewFinancials ?? false;
 
@@ -188,16 +212,50 @@ export default function App() {
     }
   };
 
-  const handleDeleteProperty = async (id: string) => {
-    const prop = properties.find((p) => p.id === id);
-    if (!confirm(`¿Confirma que desea retirar el inmueble "${prop?.title || id}"?`)) return;
+  const handleAskDeleteProperty = (property: Property) => {
+    setPropertyToDelete(property);
+    setIsDeletePropertyOpen(true);
+  };
 
+  const handleSaveProfile = async (draft: ProfileDraft): Promise<void> => {
+    setIsSavingProfile(true);
+    setProfileError('');
     try {
-      await propertiesApi.remove(id);
-      setProperties((prev) => prev.filter((p) => p.id !== id));
-      showToast('Inmueble eliminado de la cartelera.');
+      await updateProfile(draft);
+      setIsProfileOpen(false);
+      showToast('Perfil actualizado.');
+    } catch (err) {
+      setProfileError(toMessage(err));
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
+  const handleDeleteProperty = async (property: Property) => {
+    setIsDeletingProperty(true);
+    try {
+      const { photos } = await propertiesApi.remove(property.id);
+      setProperties((prev) => prev.filter((p) => p.id !== property.id));
+      setIsDeletePropertyOpen(false);
+      setPropertyToDelete(null);
+
+      // El servidor puede preservar carpetas compartidas o fallar el borrado de
+      // alguna: en esos casos la ficha igual se fue, pero conviene que el
+      // usuario sepa que quedaron fotos.
+      const leftovers = [...photos.foldersKept, ...photos.foldersFailed];
+      const detail =
+        photos.filesDeleted > 0
+          ? ` Se borraron ${photos.filesDeleted} ${photos.filesDeleted === 1 ? 'foto' : 'fotos'}.`
+          : '';
+      const warning = leftovers.length
+        ? ` Quedaron fotos sin borrar en "${leftovers.join(', ')}": ${photos.foldersKept.length ? 'las usa otra ficha' : 'revisá la carpeta'}.`
+        : '';
+
+      showToast(`Inmueble ${property.code} eliminado de la cartelera.${detail}${warning}`);
     } catch (err) {
       showToast(toMessage(err));
+    } finally {
+      setIsDeletingProperty(false);
     }
   };
 
@@ -500,10 +558,31 @@ export default function App() {
                       <div className="font-mono text-[11px] text-slate-500 truncate">
                         {user.email}
                       </div>
-                      <div className="mt-1.5 inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        {permissions?.label}
+                      <div className="mt-1.5 flex flex-wrap items-center gap-1">
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          {permissions?.label}
+                        </span>
+                        {/* La inmobiliaria a la que está dado de alta el usuario: en un
+                            solo sistema hay varias, así que conviene tenerla siempre a
+                            la vista para no confundir carteras. */}
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200 max-w-[120px]">
+                          <Building2 size={10} className="shrink-0" />
+                          <span className="truncate">{user.inmoviliaria || '—'}</span>
+                        </span>
                       </div>
                     </div>
+
+                    <button
+                      onClick={() => {
+                        setIsUserMenuOpen(false);
+                        setProfileError('');
+                        setIsProfileOpen(true);
+                      }}
+                      className="w-full text-left px-3.5 py-2 hover:bg-slate-50 flex items-center gap-2 text-slate-700"
+                    >
+                      <UserCog size={16} className="text-slate-500" />
+                      <span>Editar mi perfil</span>
+                    </button>
 
                     {permissions?.canManageUsers && (
                       <button
@@ -621,8 +700,9 @@ export default function App() {
               setPropertyToEdit(prop);
               setIsPropertyModalOpen(true);
             }}
-            onDeleteProperty={handleDeleteProperty}
-            onViewDetails={(prop) => {
+onDeleteProperty={handleAskDeleteProperty}
+        canDeleteProperties={permissions?.canDeleteProperties ?? false}
+        onViewDetails={(prop) => {
               setSelectedPropertyForDetail(prop);
               setIsPropertyDetailOpen(true);
             }}
@@ -720,6 +800,14 @@ export default function App() {
           setPropertyToEdit(prop);
           setIsPropertyModalOpen(true);
         }}
+        onDelete={
+          permissions?.canDeleteProperties
+            ? (prop) => {
+                setSelectedPropertyForDetail(null);
+                handleAskDeleteProperty(prop);
+              }
+            : undefined
+        }
       />
 
       <TaskModal
@@ -734,6 +822,32 @@ export default function App() {
         initialDate={taskInitialDate}
         properties={properties}
       />
+
+      <DeletePropertyModal
+        property={propertyToDelete}
+        isOpen={isDeletePropertyOpen}
+        isDeleting={isDeletingProperty}
+        onClose={() => {
+          setIsDeletePropertyOpen(false);
+          setPropertyToDelete(null);
+        }}
+        onConfirm={handleDeleteProperty}
+      />
+
+      {user && (
+        <ProfileModal
+          isOpen={isProfileOpen}
+          onClose={() => {
+            setIsProfileOpen(false);
+            setProfileError('');
+          }}
+          user={user}
+          inmobiliaria={user.inmoviliaria}
+          isSaving={isSavingProfile}
+          error={profileError}
+          onSubmit={handleSaveProfile}
+        />
+      )}
 
       {/* Footer */}
       <footer className="bg-white border-t border-slate-200 mt-auto py-6">

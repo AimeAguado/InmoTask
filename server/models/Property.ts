@@ -37,6 +37,7 @@ const PROPERTY_STATUSES: readonly PropertyStatus[] = [
   'en_visita',
   'reservada',
   'entregada',
+  'no_disponible',
 ];
 
 const KEYS_LOCATIONS: readonly KeysLocation[] = [
@@ -65,6 +66,14 @@ const assignedAgentSchema = new Schema(
 
 export const propertySchema = new Schema(
   {
+    // Tenant: la cartera de cada inmobiliaria es privada. Todos los listados y
+    // accesos por id de /api/properties se filtran por este campo.
+    inmoviliariaId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Inmobiliaria',
+      required: true,
+      index: true,
+    },
     code: { type: String, required: true, trim: true, uppercase: true },
     title: { type: String, required: true, trim: true },
     type: { type: String, enum: PROPERTY_TYPES, required: true },
@@ -107,8 +116,10 @@ export const propertySchema = new Schema(
 );
 
 // El código es la clave de negocio que ve la gente (INM-1042), no el _id: tiene
-// que ser único o la cartelera muestra dos fichas indistinguibles.
-propertySchema.index({ code: 1 }, { unique: true });
+// que ser único o la cartelera muestra dos fichas indistinguibles. Único DENTRO
+// de la inmobiliaria: si dos empresas distintas pueden tener su propia INM-1042,
+// el índice global las chocaría entre sí.
+propertySchema.index({ inmoviliariaId: 1, code: 1 }, { unique: true });
 propertySchema.index({ status: 1 });
 propertySchema.index({ operation: 1 });
 // La planilla se importa y después se filtra por what's activo/publicado.

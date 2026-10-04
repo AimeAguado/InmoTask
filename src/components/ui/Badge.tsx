@@ -6,6 +6,7 @@ export type BadgeStatus =
   | 'reservada'
   | 'reservado'
   | 'entregada'
+  | 'no_disponible'
   | 'vendido'
   | 'alquilado'
   | 'alta'
@@ -69,6 +70,16 @@ const STATUS_CONFIG: Record<
     text: 'text-indigo-700',
     border: 'border-indigo-200',
     dot: 'bg-indigo-500',
+  },
+  // Gris apagado a propósito: el estado apagado de la ficha. Deliberadamente
+  // distinto del 'default' (slate) para que "no hay estado conocido" no se
+  // confunda con "dejó de estar en cartelera".
+  no_disponible: {
+    label: 'No Disponible',
+    bg: 'bg-zinc-100',
+    text: 'text-zinc-600',
+    border: 'border-zinc-300',
+    dot: 'bg-zinc-400',
   },
   vendido: {
     label: 'Vendido',

@@ -16,7 +16,18 @@ export type PropertyType =
 /** Moneda del precio. El PDF usa USD y $ (pesares) según la publicación. */
 export type Currency = 'USD' | 'ARS';
 export type OperationType = 'Venta' | 'Alquiler' | 'Alquiler Temporal';
-export type PropertyStatus = 'disponible' | 'en_visita' | 'reservada' | 'entregada';
+/**
+ * 'no_disponible' es el limbo de una ficha que ya no se ofrece (el dueño la
+ * retiró, se leased, la públicas por otro canal) pero cuyo historial y fotos
+ * interesa conservar. Es distinto de 'entregada': no se vendió ni se alquiló,
+ * simplemente dejó de estar en cartelera.
+ */
+export type PropertyStatus =
+  | 'disponible'
+  | 'en_visita'
+  | 'reservada'
+  | 'entregada'
+  | 'no_disponible';
 export type KeysLocation = 'Oficina Central' | 'Portería' | 'Propietario' | 'Agente a Cargo';
 export type SignageStatus = 'Cartel Colocado' | 'Sin Cartel' | 'Pendiente de Colocación';
 
@@ -123,35 +134,62 @@ export interface FinancialEntry {
   propertyCode?: string;
 }
 
-export type UserRole = 'asesor' | 'jefatura';
+/**
+ * 'admin' es el usuario de la propia inmobiliaria: da de alta a sus asesores y
+ * ve los finanzas de SU empresa. Reemplaza a 'jefatura', que era un rol global
+ * sin ninguna empresa detrás.
+ */
+export type UserRole = 'admin' | 'asesor';
+
+export interface Inmobiliaria {
+  id: string;
+  name: string;
+  legalName: string;
+  taxId: string;
+  phone: string;
+  email: string;
+  logo: string;
+  active: boolean;
+  createdAt: string;
+}
 
 export interface RolePermissions {
   label: string;
   description: string;
   canViewFinancials: boolean;
   canManageUsers: boolean;
+  canDeleteProperties: boolean;
 }
 
 export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
   asesor: {
     label: 'Asesor',
-    description: 'Opera la cartera de inmuebles y la agenda de tareas.',
+    description: 'Opera la cartera de inmuebles y la agenda de tareas de su inmobiliaria.',
     canViewFinancials: false,
     canManageUsers: false,
+    canDeleteProperties: false,
   },
-  jefatura: {
-    label: 'Jefatura',
-    description: 'Acceso completo, incluyendo resultados financieros y alta de usuarios.',
+  admin: {
+    label: 'Administrador',
+    description: 'Administra los usuarios y los finanzas de su propia inmobiliaria.',
     canViewFinancials: true,
     canManageUsers: true,
+    canDeleteProperties: true,
   },
 };
 
 export interface AppUser {
   id: string;
+  /** Nombre y apellido juntos, para mostrar. Derivado por el servidor. */
   name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   role: UserRole;
+  /** Tenant del usuario. Todo lo que ve está acotado a esta inmobiliaria. */
+  inmoviliariaId: string;
+  /** Nombre de la inmobiliaria, resuelto en el servidor para mostrarlo junto al asesor. */
+  inmoviliaria: string;
   phone?: string;
   license?: string;
   avatar?: string;

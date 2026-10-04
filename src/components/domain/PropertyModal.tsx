@@ -187,6 +187,7 @@ export const PropertyModal: React.FC<PropertyModalProps> = ({
               { value: 'en_visita', label: 'En Visita / Agendado' },
               { value: 'reservada', label: 'Reservada' },
               { value: 'entregada', label: 'Entregada / Concluida' },
+              { value: 'no_disponible', label: 'No Disponible (fuera de cartelera)' },
             ]}
           />
         </div>

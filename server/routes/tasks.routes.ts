@@ -4,7 +4,7 @@ import { PropertyModel } from '../models/Property';
 import { serializeTask } from '../lib/serialize';
 import { ApiError, asyncHandler } from '../lib/http';
 import { asBoolean, asEnum, asHhMm, asString, asYmdDate, stripServerFields } from '../lib/validation';
-import { requireAuth } from '../middleware/auth';
+import { requireAuth, scope } from '../middleware/auth';
 import type { TaskCategory, TaskPriority, TaskStatus } from '../../src/types';
 
 const CATEGORIES: readonly TaskCategory[] = [
@@ -75,7 +75,7 @@ const toTaskDoc = async (body: unknown) => {
 tasksRouter.get(
   '/',
   asyncHandler(async (req, res) => {
-    const filter: Record<string, unknown> = {};
+    const filter: Record<string, unknown> = { ...scope(req) };
 
     const status = req.query.status;
     if (typeof status === 'string' && status) {
@@ -100,7 +100,10 @@ tasksRouter.get(
 tasksRouter.post(
   '/',
   asyncHandler(async (req, res) => {
-    const created = await TaskModel.create(await toTaskDoc(req.body));
+    const created = await TaskModel.create({
+      ...(await toTaskDoc(req.body)),
+      inmoviliariaId: req.user!.inmoviliariaId,
+    });
     res.status(201).json({ task: serializeTask(created) });
   })
 );
@@ -108,7 +111,7 @@ tasksRouter.post(
 tasksRouter.put(
   '/:id',
   asyncHandler(async (req, res) => {
-    const existing = await TaskModel.findById(req.params.id);
+    const existing = await TaskModel.findOne({ ...scope(req), _id: req.params.id });
     if (!existing) throw ApiError.notFound('Tarea no encontrada.');
 
     existing.set(await toTaskDoc(req.body));
@@ -124,8 +127,10 @@ tasksRouter.patch(
   asyncHandler(async (req, res) => {
     const status = asEnum<TaskStatus>(req.body?.status, 'status', STATUSES, { required: true });
 
-    const doc = await TaskModel.findByIdAndUpdate(
-      req.params.id,
+    // El filtro del tenant va en la misma query que el _id: sin él, un id
+    // adivinado de otra inmobiliaria dejaría editarse una tarea ajena.
+    const doc = await TaskModel.findOneAndUpdate(
+      { ...scope(req), _id: req.params.id },
       { status, completedAt: status === 'completada' ? new Date() : null },
       { new: true, runValidators: true }
     );
@@ -138,7 +143,7 @@ tasksRouter.patch(
 tasksRouter.delete(
   '/:id',
   asyncHandler(async (req, res) => {
-    const doc = await TaskModel.findByIdAndDelete(req.params.id);
+    const doc = await TaskModel.findOneAndDelete({ ...scope(req), _id: req.params.id });
     if (!doc) throw ApiError.notFound('Tarea no encontrada.');
     res.status(204).end();
   })

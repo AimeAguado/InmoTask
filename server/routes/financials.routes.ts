@@ -3,7 +3,7 @@ import { FinancialEntryModel } from '../models/FinancialEntry';
 import { serializeEntry } from '../lib/serialize';
 import { asyncHandler } from '../lib/http';
 import { asEnum, asYmdDate } from '../lib/validation';
-import { requireAuth, requireRole } from '../middleware/auth';
+import { requireAuth, requireAdmin, scope } from '../middleware/auth';
 import type { FinancialCategory, FinancialEntryType } from '../../src/types';
 
 const ENTRY_TYPES: readonly FinancialEntryType[] = ['ingreso', 'egreso'];
@@ -21,14 +21,15 @@ const ENTRY_CATEGORIES: readonly FinancialCategory[] = [
 
 export const financialsRouter = Router();
 
-// Los resultados financieros son visibles solo para jefatura (canViewFinancials).
-// El filtro del dashboard es solo cosmético: los datos no salen de acá para un asesor.
-financialsRouter.use(requireAuth, requireRole('jefatura'));
+// Los resultados financieros son visibles solo para el admin de la inmobiliaria
+// (canViewFinancials). El filtro del dashboard es solo cosmético: los datos no
+// salen de acá para un asesor.
+financialsRouter.use(requireAuth, requireAdmin);
 
 financialsRouter.get(
   '/',
   asyncHandler(async (req, res) => {
-    const filter: Record<string, unknown> = {};
+    const filter: Record<string, unknown> = { ...scope(req) };
 
     const type = req.query.type;
     if (typeof type === 'string' && type) {

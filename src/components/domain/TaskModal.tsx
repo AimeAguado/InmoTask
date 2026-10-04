@@ -100,7 +100,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       title={taskToEdit ? 'Editar Tarea / Visita' : 'Nueva Tarea u Orden de Trabajo'}
-      subtitle="Organice visitas agendadas por jefatura, llaves, cartelería o inspecciones."
+      subtitle="Organice visitas agendadas por administración, llaves, cartelería o inspecciones."
       size="lg"
       footer={
         <>
@@ -116,7 +116,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
       <form onSubmit={handleSubmit} className="space-y-4">
         <Input
           label="Título de la tarea o visita"
-          placeholder="Ej: Visita agendada por jefatura - Mostrar departamento"
+          placeholder="Ej: Visita agendada por administración - Mostrar departamento"
           value={formData.title}
           onChange={(e) => setFormData({ ...formData, title: e.target.value })}
           error={errors.title}
@@ -208,7 +208,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
             className="rounded border-slate-300 text-slate-900 focus:ring-slate-900 w-4 h-4 cursor-pointer"
           />
           <label htmlFor="assignedByDirector" className="text-xs font-medium text-slate-700 cursor-pointer">
-            Coordinada por jefatura / Dirección
+            Coordinada por administración / Dirección
           </label>
         </div>
       </form>

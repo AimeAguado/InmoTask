@@ -1,6 +1,9 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { AppUser, ROLE_PERMISSIONS, RolePermissions } from '../types';
 import * as userStore from '../services/userStore';
+import { authApi } from '../services/api';
+import type { UpdateUserInput } from '../services/api';
+import type { ProfileDraft } from '../components/domain/ProfileModal';
 
 interface AuthContextValue {
   user: AppUser | null;
@@ -11,6 +14,10 @@ interface AuthContextValue {
   isBootstrapping: boolean;
   signIn: (email: string, password: string) => Promise<userStore.LoginResult>;
   signOut: () => Promise<void>;
+  /** Guarda nombre, apellido, teléfono y foto de la cuenta propia. */
+  updateProfile: (input: ProfileDraft) => Promise<void>;
+  /** Un admin corrigiendo los datos de un asesor de su misma inmobiliaria. */
+  updateUser: (id: string, input: UpdateUserInput) => Promise<void>;
   refreshUsers: () => Promise<void>;
   addUser: (input: userStore.CreateUserInput) => Promise<userStore.CreateUserResult>;
   toggleUserActive: (id: string, active: boolean) => Promise<void>;
@@ -46,7 +53,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUsers(await userStore.listUsers());
   }, []);
 
-  // La lista de usuarios es un endpoint de jefatura: un asesor recibiría un 403
+  // La lista de usuarios es un endpoint de admin: un asesor recibiría un 403
   // al pedirla, así que se consulta sólo cuando tiene permiso.
   useEffect(() => {
     if (!user || !ROLE_PERMISSIONS[user.role].canManageUsers) {
@@ -100,6 +107,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser((prev) => (prev && prev.id === id ? { ...prev, role } : prev));
   }, []);
 
+  const updateProfile = useCallback(async (input: ProfileDraft) => {
+    // Se reemplaza el usuario de sesión entero con la respuesta del servidor: el
+    // `name` derivado de firstName/lastName y la ruta final de la foto los calcula
+    // el backend, y si se parcheara sólo lo local la cabecera quedaría desfasada.
+    const { user: saved } = await authApi.updateMe(input);
+    setUser(saved);
+    setUsers((prev) => prev.map((u) => (u.id === saved.id ? saved : u)));
+  }, []);
+
+  const updateUser = useCallback(async (id: string, input: UpdateUserInput) => {
+    const saved = await userStore.updateUser(id, input);
+    setUsers((prev) => prev.map((u) => (u.id === id ? saved : u)));
+    // Si el admin se edita a sí mismo, la sesión tiene que reflejarlo también.
+    setUser((prev) => (prev && prev.id === id ? saved : prev));
+  }, []);
+
   const permissions = user ? ROLE_PERMISSIONS[user.role] : null;
 
   const value = useMemo<AuthContextValue>(
@@ -111,12 +134,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isBootstrapping,
       signIn,
       signOut,
+      updateProfile,
+      updateUser,
       refreshUsers,
       addUser,
       toggleUserActive,
       changeUserRole,
     }),
-    [user, users, permissions, isBootstrapping, signIn, signOut, refreshUsers, addUser, toggleUserActive, changeUserRole]
+    [
+      user,
+      users,
+      permissions,
+      isBootstrapping,
+      signIn,
+      signOut,
+      updateProfile,
+      updateUser,
+      refreshUsers,
+      addUser,
+      toggleUserActive,
+      changeUserRole,
+    ]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

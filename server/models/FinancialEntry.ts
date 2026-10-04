@@ -17,6 +17,13 @@ const ENTRY_CATEGORIES: readonly FinancialCategory[] = [
 
 export const financialEntrySchema = new Schema(
   {
+    // Tenant: los finanzas de una inmobiliaria no son visibles para otra.
+    inmoviliariaId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Inmobiliaria',
+      required: true,
+      index: true,
+    },
     type: { type: String, enum: ENTRY_TYPES, required: true },
     category: { type: String, enum: ENTRY_CATEGORIES, required: true },
     concept: { type: String, required: true, trim: true },

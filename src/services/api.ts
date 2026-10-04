@@ -67,12 +67,21 @@ export const authApi = {
   logout: () => request<void>('/auth/logout', { method: 'POST' }),
 
   session: () => request<{ user: AppUser }>('/auth/session'),
+
+  /** Perfil propio: nombre, apellido, teléfono y foto. El rol y la empresa los
+   *  cambia el admin, no el usuario. */
+  updateMe: (input: Partial<Pick<AppUser, 'firstName' | 'lastName' | 'phone' | 'avatar'>>) =>
+    request<{ user: AppUser }>('/auth/me', {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    }),
 };
 
 // ----------------------------------------------------------------- users ----
 
 export type CreateUserInput = {
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   password: string;
   role: UserRole;
@@ -80,11 +89,22 @@ export type CreateUserInput = {
   license?: string;
 };
 
+/** Lo que un admin puede corregirle a un asesor de su propia inmobiliaria. */
+export type UpdateUserInput = Partial<
+  Pick<AppUser, 'firstName' | 'lastName' | 'phone' | 'license' | 'avatar'>
+>;
+
 export const usersApi = {
   list: () => request<{ users: AppUser[] }>('/users'),
 
   create: (input: CreateUserInput) =>
     request<{ user: AppUser }>('/users', json(input)),
+
+  update: (id: string, input: UpdateUserInput) =>
+    request<{ user: AppUser }>(`/users/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    }),
 
   setActive: (id: string, active: boolean) =>
     request<{ user: AppUser }>(`/users/${id}/active`, {
@@ -101,6 +121,17 @@ export const usersApi = {
 
 // ------------------------------------------------------------ properties ----
 
+export interface DeletePropertyResult {
+  deleted: { code: string };
+  photos: {
+    filesDeleted: number;
+    foldersRemoved: string[];
+    foldersKept: string[];
+    foldersMissing: string[];
+    foldersFailed: string[];
+  };
+}
+
 export const propertiesApi = {
   list: () => request<{ properties: Property[] }>('/properties'),
 
@@ -113,7 +144,7 @@ export const propertiesApi = {
       body: JSON.stringify(property),
     }),
 
-  remove: (id: string) => request<void>(`/properties/${id}`, { method: 'DELETE' }),
+  remove: (id: string) => request<DeletePropertyResult>(`/properties/${id}`, { method: 'DELETE' }),
 };
 
 // ----------------------------------------------------------------- tasks ----

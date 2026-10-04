@@ -17,6 +17,14 @@ const TASK_STATUSES: readonly TaskStatus[] = ['pendiente', 'en_progreso', 'compl
 
 export const taskSchema = new Schema(
   {
+    // Tenant: toda lectura y escritura de tareas se acota a la inmobiliaria del
+    // usuario. Sin este campo, dos inmobiliarias verían la misma agenda.
+    inmoviliariaId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Inmobiliaria',
+      required: true,
+      index: true,
+    },
     title: { type: String, required: true, trim: true },
     description: { type: String, default: '' },
     category: { type: String, enum: TASK_CATEGORIES, required: true },

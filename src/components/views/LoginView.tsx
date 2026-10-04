@@ -45,7 +45,7 @@ export const LoginView: React.FC = () => {
     if (result.ok) return;
 
     if (result.reason === 'inactive') {
-      setError('Tu cuenta está desactivada. Contactá a jefatura para reactivarla.');
+      setError('Tu cuenta está desactivada. Contactá al administrador para reactivarla.');
     } else if (result.reason === 'server') {
       setError('No pudimos conectar con el servidor. Intentá de nuevo en un momento.');
     } else {
@@ -123,7 +123,7 @@ export const LoginView: React.FC = () => {
               <Info className="w-3.5 h-3.5 shrink-0 mt-px text-slate-400" />
               <span>
                 Las cuentas se dan de alta desde <strong>Usuarios</strong>, disponible solo para
-                el rol de Jefatura. Si no tenés usuario, pedíselo a tu jefatura.
+                el rol de administrador. Si no tenés usuario, pedíselo al administrador.
               </span>
             </p>
           </div>

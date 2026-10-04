@@ -14,6 +14,7 @@ import {
   Flag,
   FileText,
   CheckCircle2,
+  Trash2,
 } from 'lucide-react';
 
 interface PropertyDetailModalProps {
@@ -22,6 +23,7 @@ interface PropertyDetailModalProps {
   onClose: () => void;
   onScheduleVisit: (property: Property) => void;
   onEdit: (property: Property) => void;
+  onDelete?: (property: Property) => void;
 }
 
 export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
@@ -30,6 +32,7 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
   onClose,
   onScheduleVisit,
   onEdit,
+  onDelete,
 }) => {
   if (!property) return null;
 
@@ -42,14 +45,30 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
       size="2xl"
       footer={
         <div className="flex items-center justify-between w-full">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onEdit(property)}
-            leftIcon={<FileText className="w-3.5 h-3.5" />}
-          >
-            Editar Ficha
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onEdit(property)}
+              leftIcon={<FileText className="w-3.5 h-3.5" />}
+            >
+              Editar Ficha
+            </Button>
+            {onDelete && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  onClose();
+                  onDelete(property);
+                }}
+                leftIcon={<Trash2 className="w-3.5 h-3.5" />}
+                className="text-rose-600 hover:bg-rose-50"
+              >
+                Eliminar
+              </Button>
+            )}
+          </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={onClose}>
               Cerrar

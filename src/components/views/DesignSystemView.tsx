@@ -127,6 +127,10 @@ export const DesignSystemView: React.FC = () => {
             <div className="text-xs font-semibold text-slate-500 mb-2">Estados Inmobiliarios</div>
             <div className="flex flex-wrap items-center gap-2.5">
               <Badge status="disponible" />
+              <Badge status="en_visita" />
+              <Badge status="reservada" />
+              <Badge status="entregada" />
+              <Badge status="no_disponible" />
               <Badge status="reservado" />
               <Badge status="vendido" />
               <Badge status="alquilado" />

@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import { Property } from '../../types';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
-import { MapPin, Bed, Bath, Maximize2, Car, Eye, Calendar, Sparkles, Key, Flag } from 'lucide-react';
+import { MapPin, Bed, Bath, Maximize2, Car, Eye, Calendar, Sparkles, Key, Flag, Trash2 } from 'lucide-react';
 
 interface PropertyCardProps {
   property: Property;
   onViewDetails?: (property: Property) => void;
   onScheduleVisit?: (property: Property) => void;
   onEdit?: (property: Property) => void;
+  onDelete?: (property: Property) => void;
   className?: string;
 }
 
@@ -17,6 +18,7 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
   onViewDetails,
   onScheduleVisit,
   onEdit,
+  onDelete,
   className = '',
 }) => {
   const [imageError, setImageError] = useState(false);
@@ -153,6 +155,19 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
             >
               Editar
             </Button>
+          )}
+          {/* Sólo se pasa onDelete al admin (ver PropertiesView): es la única
+              forma de que el botón no exista para un asesor, y no sólo de que
+              esté deshabilitado. */}
+          {onDelete && (
+            <button
+              onClick={() => onDelete(property)}
+              className="p-1.5 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 transition-colors"
+              title="Eliminar de cartelera"
+              aria-label={`Eliminar ${property.code}`}
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
           )}
         </div>
       </div>

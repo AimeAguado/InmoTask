@@ -1,4 +1,5 @@
 import type { AppUserDoc } from '../models/AppUser';
+import mongoose from 'mongoose';
 import type { FinancialEntryDoc } from '../models/FinancialEntry';
 import type { PropertyDoc } from '../models/Property';
 import type { TaskDoc } from '../models/Task';
@@ -90,17 +91,63 @@ export const serializeEntry = (doc: FinancialEntryDoc): FinancialEntry => ({
 });
 
 /**
+ * Lee la referencia a la inmobiliaria tolerando los dos casos de mongoose.
+ *
+ * OJO con distinguir un ObjectId "puro" de un documento populado: bson define un
+ * getter `_id` en ObjectId que devuelve el propio ObjectId, así que un chequeo
+ * del tipo `'_id' in ref` da TRUE en los dos casos y el nombre se pierde siempre
+ * (manda el `populated.name` de un ObjectId, que es undefined). Por eso el
+ * `instanceof ObjectId` va primero.
+ *
+ * - Sin populate, el campo es un ObjectId: se usa su id y el nombre que pasó el
+ *   caller (que ya lo consultó).
+ * - Con populate, mongoose reemplaza el campo por el documento entero: si se
+ *   hiciera String() a secas se devolvería el nombre de la empresa en el lugar
+ *   del id.
+ */
+const readTenant = (ref: unknown, fallbackName?: string): { id: string; name: string } => {
+  if (ref instanceof mongoose.Types.ObjectId) {
+    return { id: String(ref), name: fallbackName ?? '' };
+  }
+
+  if (typeof ref === 'string' && ref.trim()) {
+    return { id: ref, name: fallbackName ?? '' };
+  }
+
+  if (ref && typeof ref === 'object' && '_id' in ref) {
+    const populated = ref as { _id: unknown; name?: unknown };
+    return {
+      id: String(populated._id),
+      name: populated.name ? String(populated.name) : (fallbackName ?? ''),
+    };
+  }
+
+  return { id: '', name: fallbackName ?? '' };
+};
+
+/**
  * El passwordHash nunca sale de acá: el schema lo tiene en select:false y esta
  * función ni siquiera lo menciona, así que no hay forma de filtrarlo por error.
+ *
+ * `inmoviliariaName` es para los callers que ya tienen el nombre a mano (por
+ * ejemplo el login, que consulta la empresa aparte) y no hicieron populate.
  */
-export const serializeUser = (doc: AppUserDoc): AppUser => ({
-  id: String(doc._id),
-  name: doc.name,
-  email: doc.email,
-  role: doc.role,
-  phone: opt(doc.phone),
-  license: opt(doc.license),
-  avatar: opt(doc.avatar),
-  active: doc.active,
-  createdAt: ymd(doc.createdAt) ?? '',
-});
+export const serializeUser = (doc: AppUserDoc, inmobiliariaName?: string): AppUser => {
+  const tenant = readTenant(doc.inmoviliariaId, inmobiliariaName);
+
+  return {
+    id: String(doc._id),
+    name: doc.name,
+    firstName: doc.firstName,
+    lastName: doc.lastName,
+    email: doc.email,
+    role: doc.role,
+    inmoviliariaId: tenant.id,
+    inmoviliaria: tenant.name,
+    phone: opt(doc.phone),
+    license: opt(doc.license),
+    avatar: opt(doc.avatar),
+    active: doc.active,
+    createdAt: ymd(doc.createdAt) ?? '',
+  };
+};

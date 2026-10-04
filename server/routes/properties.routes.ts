@@ -1,7 +1,9 @@
 import { Router } from 'express';
+import path from 'node:path';
 import { PropertyModel } from '../models/Property';
 import { serializeProperty } from '../lib/serialize';
 import { ApiError, asyncHandler } from '../lib/http';
+import { photoFoldersOf, removePhotoFolders } from '../lib/propertyPhotos';
 import {
   asBoolean,
   asEnum,
@@ -10,7 +12,7 @@ import {
   asStringArray,
   stripServerFields,
 } from '../lib/validation';
-import { requireAuth } from '../middleware/auth';
+import { requireAdmin, requireAuth, scope } from '../middleware/auth';
 import type {
   Currency,
   KeysLocation,
@@ -45,6 +47,7 @@ const PROPERTY_STATUSES: readonly PropertyStatus[] = [
   'en_visita',
   'reservada',
   'entregada',
+  'no_disponible',
 ];
 
 const KEYS_LOCATIONS: readonly KeysLocation[] = [
@@ -122,7 +125,9 @@ const toPropertyDoc = (body: unknown) => {
 propertiesRouter.get(
   '/',
   asyncHandler(async (req, res) => {
-    const filter: Record<string, unknown> = {};
+    // El filtro arranca acotado a la inmobiliaria del usuario y los criteria se
+    // agregan encima: nunca se consulta la cartera completa.
+    const filter: Record<string, unknown> = { ...scope(req) };
 
     const status = req.query.status;
     if (typeof status === 'string' && status) {
@@ -153,7 +158,7 @@ propertiesRouter.get(
 propertiesRouter.get(
   '/:id',
   asyncHandler(async (req, res) => {
-    const doc = await PropertyModel.findById(req.params.id);
+    const doc = await PropertyModel.findOne({ ...scope(req), _id: req.params.id });
     if (!doc) throw ApiError.notFound('Inmueble no encontrado.');
     res.json({ property: serializeProperty(doc) });
   })
@@ -164,12 +169,15 @@ propertiesRouter.post(
   asyncHandler(async (req, res) => {
     const payload = toPropertyDoc(req.body);
 
-    const duplicate = await PropertyModel.exists({ code: payload.code });
+    const duplicate = await PropertyModel.exists({ ...scope(req), code: payload.code });
     if (duplicate) {
       throw ApiError.conflict('duplicate-code', `Ya existe un inmueble con el código ${payload.code}.`);
     }
 
-    const created = await PropertyModel.create(payload);
+    const created = await PropertyModel.create({
+      ...payload,
+      inmoviliariaId: req.user!.inmoviliariaId,
+    });
     res.status(201).json({ property: serializeProperty(created) });
   })
 );
@@ -177,12 +185,13 @@ propertiesRouter.post(
 propertiesRouter.put(
   '/:id',
   asyncHandler(async (req, res) => {
-    const existing = await PropertyModel.findById(req.params.id);
+    const existing = await PropertyModel.findOne({ ...scope(req), _id: req.params.id });
     if (!existing) throw ApiError.notFound('Inmueble no encontrado.');
 
     const payload = toPropertyDoc(req.body);
     if (payload.code !== existing.code) {
       const duplicate = await PropertyModel.exists({
+        ...scope(req),
         code: payload.code,
         _id: { $ne: existing._id },
       });
@@ -202,9 +211,36 @@ propertiesRouter.put(
 
 propertiesRouter.delete(
   '/:id',
+  requireAdmin,
   asyncHandler(async (req, res) => {
-    const doc = await PropertyModel.findByIdAndDelete(req.params.id);
+    const doc = await PropertyModel.findOne({ ...scope(req), _id: req.params.id });
     if (!doc) throw ApiError.notFound('Inmueble no encontrado.');
-    res.status(204).end();
+
+    const urls = [...doc.images, doc.imageUrl].filter(Boolean);
+    const folders = photoFoldersOf(urls);
+
+    // Primero la ficha y después las fotos. Al revés, un fallo al escribir en
+    // Mongo dejaría una ficha viva apuntando a fotos que ya no existen.
+    await PropertyModel.findByIdAndDelete(doc._id);
+
+    const photos = await removePhotoFolders(folders, async (folder) => {
+      // Dos fichas pueden apuntar al mismo directorio de fotos; borrarlo dejaría
+      // sin imágenes a la otra, así que se preserva.
+      const prefix = new RegExp(
+        `^/properties/${path.basename(folder).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/`
+      );
+      return (
+        await PropertyModel.exists({
+          ...scope(req),
+          _id: { $ne: doc._id },
+          images: { $regex: prefix },
+        })
+      ) !== null;
+    });
+
+    res.json({
+      deleted: { code: doc.code },
+      photos,
+    });
   })
 );

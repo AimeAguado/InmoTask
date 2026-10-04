@@ -1,9 +1,11 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { AppUserModel } from '../models/AppUser';
+import { InmobiliariaModel } from '../models/Inmobiliaria';
 import { serializeUser } from '../lib/serialize';
 import { ApiError, asyncHandler } from '../lib/http';
 import { asString } from '../lib/validation';
+import { saveAvatar } from '../lib/avatarStorage';
 import { clearSessionCookie, requireAuth, setSessionCookie, signSession } from '../middleware/auth';
 
 const SALT_ROUNDS = 12;
@@ -35,11 +37,14 @@ authRouter.post(
     const ok = await bcrypt.compare(password, user.passwordHash);
     if (!ok) throw invalid;
     if (!user.active) {
-      throw ApiError.unauthorized('inactive-user', 'Tu cuenta está desactivada. Contactá a jefatura.');
+      throw ApiError.unauthorized('inactive-user', 'Tu cuenta está desactivada. Contactá al administrador.');
     }
 
     setSessionCookie(res, signSession(serializeUser(user)));
-    res.json({ user: serializeUser(user) });
+    // requireAuth resuelve la inmobiliaria en cada request; acá se consulta una
+    // vez para que la UI pueda mostrar "InmoTask" junto al usuario desde el login.
+    const inmobiliaria = await InmobiliariaModel.findById(user.inmoviliariaId).select('name active');
+    res.json({ user: serializeUser(user, inmobiliaria?.name ?? '') });
   })
 );
 
@@ -58,5 +63,52 @@ authRouter.get(
     // requireAuth ya dejó un AppUser limpio en req.user: no hace falta volver a
     // pasar el documento por el serializer.
     res.json({ user: req.user });
+  })
+);
+
+/**
+ * Datos de la cuenta propia. El usuario puede editar su nombre, apellido,
+ * teléfono y foto, pero NO su rol ni su inmobiliaria: eso los cambia el admin de
+ * su empresa. Es la contraparte de /api/users, que exige permisos de admin.
+ */
+authRouter.patch(
+  '/me',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const doc = await AppUserModel.findById(req.user!.id);
+    if (!doc) throw ApiError.notFound('Usuario no encontrado.');
+
+    if (req.body?.firstName !== undefined || req.body?.lastName !== undefined) {
+      const firstName = req.body?.firstName
+        ? asString(req.body.firstName, 'firstName', { max: 80 })
+        : doc.firstName;
+      const lastName = req.body?.lastName
+        ? asString(req.body.lastName, 'lastName', { max: 80 })
+        : doc.lastName;
+
+      if (!firstName.trim() || !lastName.trim()) {
+        throw ApiError.badRequest(
+          'validation_error',
+          'El nombre y el apellido no pueden quedar vacíos.'
+        );
+      }
+      doc.firstName = firstName.trim();
+      doc.lastName = lastName.trim();
+      doc.name = `${doc.firstName} ${doc.lastName}`;
+    }
+
+    if (req.body?.phone !== undefined) {
+      doc.phone = asString(req.body?.phone, 'phone', { max: 40 });
+    }
+    if (req.body?.avatar !== undefined) {
+      doc.avatar = await saveAvatar(
+        req.body.avatar,
+        String(doc._id),
+        String(doc.inmoviliariaId)
+      );
+    }
+
+    await doc.save();
+    res.json({ user: serializeUser(doc, req.user!.inmoviliaria) });
   })
 );
