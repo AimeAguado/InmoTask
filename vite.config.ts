@@ -19,6 +19,16 @@ export default defineConfig(({mode}) => {
       hmr: env.DISABLE_HMR !== 'true',
       // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
       watch: env.DISABLE_HMR === 'true' ? null : {},
+      proxy: {
+        // El front llama a rutas relativas /api/*, así que el navegador nunca
+        // ve el host de la API. Además de evitar CORS, hace que la cookie de
+        // sesión sea de primer party: sameSite:'lax' la sigue mandando y queda
+        // fuera del alcance del JS de la página.
+        '/api': {
+          target: env.API_PROXY_TARGET || 'http://localhost:4000',
+          changeOrigin: false,
+        },
+      },
     },
   };
 });

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { toMessage } from '../../services/api';
 import { AppUser, ROLE_PERMISSIONS, UserRole } from '../../types';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
@@ -43,20 +44,22 @@ const NewUserForm: React.FC<{ onDone: () => void }> = ({ onDone }) => {
     license: '',
   });
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const update = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
     setForm((prev) => ({ ...prev, [key]: e.target.value }));
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    if (form.password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres.');
+    if (form.password.length < 8) {
+      setError('La contraseña debe tener al menos 8 caracteres.');
       return;
     }
 
-    const result = addUser({
+    setIsSubmitting(true);
+    const result = await addUser({
       name: form.name,
       email: form.email,
       password: form.password,
@@ -64,6 +67,7 @@ const NewUserForm: React.FC<{ onDone: () => void }> = ({ onDone }) => {
       phone: form.phone,
       license: form.license,
     });
+    setIsSubmitting(false);
 
     if (result.ok) {
       onDone();
@@ -73,6 +77,8 @@ const NewUserForm: React.FC<{ onDone: () => void }> = ({ onDone }) => {
     setError(
       result.reason === 'duplicate-email'
         ? 'Ya existe un usuario registrado con ese email.'
+        : result.reason === 'weak-password'
+        ? 'La contraseña debe tener al menos 8 caracteres.'
         : 'Revisá que nombre, email y contraseña estén completos.'
     );
   };
@@ -154,10 +160,22 @@ const NewUserForm: React.FC<{ onDone: () => void }> = ({ onDone }) => {
       )}
 
       <div className="mt-4 pt-3.5 border-t border-slate-100 flex justify-end gap-2">
-        <Button type="button" variant="ghost" size="sm" onClick={onDone}>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={onDone}
+          disabled={isSubmitting}
+        >
           Cancelar
         </Button>
-        <Button type="submit" variant="primary" size="sm" leftIcon={<UserPlus className="w-3.5 h-3.5" />}>
+        <Button
+          type="submit"
+          variant="primary"
+          size="sm"
+          isLoading={isSubmitting}
+          leftIcon={<UserPlus className="w-3.5 h-3.5" />}
+        >
           Crear usuario
         </Button>
       </div>
@@ -168,6 +186,28 @@ const NewUserForm: React.FC<{ onDone: () => void }> = ({ onDone }) => {
 export const UsersView: React.FC = () => {
   const { users, user: currentUser, toggleUserActive, changeUserRole } = useAuth();
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [pendingId, setPendingId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // Los controles se bloquean sólo sobre la fila que se está actualizando: el
+  // resto de la lista sigue siendo navegable mientras corre la petición.
+  const runAction = async (id: string, action: () => Promise<void>, fallback: string) => {
+    setPendingId(id);
+    setError(null);
+    try {
+      await action();
+    } catch (err) {
+      setError(toMessage(err));
+    } finally {
+      setPendingId(null);
+    }
+  };
+
+  const handleToggleActive = (id: string, active: boolean) =>
+    void runAction(id, () => toggleUserActive(id, active), 'No se pudo cambiar el estado de la cuenta.');
+
+  const handleRoleChange = (id: string, role: UserRole) =>
+    void runAction(id, () => changeUserRole(id, role), 'No se pudo cambiar el rol.');
 
   const sorted = [...users].sort((a, b) => {
     if (a.id === currentUser?.id) return -1;
@@ -204,6 +244,16 @@ export const UsersView: React.FC = () => {
       </div>
 
       {isFormOpen && <NewUserForm onDone={() => setIsFormOpen(false)} />}
+
+      {error && (
+        <div
+          role="alert"
+          className="flex items-start gap-2 text-xs font-medium text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2.5"
+        >
+          <AlertCircle className="w-4 h-4 shrink-0 mt-px" />
+          <span>{error}</span>
+        </div>
+      )}
 
       {/* Users List */}
       <div className="bg-white rounded-xl border border-slate-200/90 overflow-hidden">
@@ -275,8 +325,8 @@ export const UsersView: React.FC = () => {
 
                 <Select
                   value={u.role}
-                  onChange={(e) => changeUserRole(u.id, e.target.value as UserRole)}
-                  disabled={isSelf}
+                  onChange={(e) => handleRoleChange(u.id, e.target.value as UserRole)}
+                  disabled={isSelf || pendingId === u.id}
                   className="!h-8 !text-xs !py-0 !w-auto min-w-[7.5rem]"
                   options={[
                     { value: 'asesor', label: 'Asesor' },
@@ -287,8 +337,9 @@ export const UsersView: React.FC = () => {
                 <Button
                   variant={u.active ? 'outline' : 'success'}
                   size="sm"
-                  disabled={isSelf}
-                  onClick={() => toggleUserActive(u.id, !u.active)}
+                  disabled={isSelf || pendingId === u.id}
+                  isLoading={pendingId === u.id}
+                  onClick={() => handleToggleActive(u.id, !u.active)}
                   title={
                     isSelf
                       ? 'No podés desactivar tu propia cuenta'

@@ -1,4 +1,20 @@
-export type PropertyType = 'Casa' | 'Departamento' | 'PH' | 'Terreno' | 'Oficina' | 'Local Comercial';
+export type PropertyType =
+  | 'Casa'
+  | 'Casa PH'
+  | 'Casa Interna'
+  | 'Departamento'
+  | 'PH'
+  | 'Terreno'
+  | 'Oficina'
+  | 'Local'
+  | 'Local Comercial'
+  | 'Galpón'
+  | 'Quinta'
+  | 'Complejo'
+  | 'Fondo de Comercio';
+
+/** Moneda del precio. El PDF usa USD y $ (pesares) según la publicación. */
+export type Currency = 'USD' | 'ARS';
 export type OperationType = 'Venta' | 'Alquiler' | 'Alquiler Temporal';
 export type PropertyStatus = 'disponible' | 'en_visita' | 'reservada' | 'entregada';
 export type KeysLocation = 'Oficina Central' | 'Portería' | 'Propietario' | 'Agente a Cargo';
@@ -22,7 +38,24 @@ export interface Property {
   keysLocation: KeysLocation;
   signageStatus: SignageStatus;
   imageUrl: string;
+  /** Galería completa; imageUrl es la portada. */
+  images: string[];
   description: string;
+  /** Precio de venta o alquiler en la moneda indicada. 0 = "a consultar". */
+  price: number;
+  currency: Currency;
+  /** "Todos los servicios", "Gas y luz", etc. Texto libre del PDF. */
+  services: string;
+  /** El dueño acepta crédito hipotecario. */
+  aptaCredito: boolean;
+  /** Condiciones de permuta o financing: "50% Entrega, 50% Financia". */
+  financing: string;
+  /** true = publicación activa; false = pausada. */
+  active: boolean;
+  /** '' = cargada a mano, 'captacion' = importada del PDF de captación. */
+  source: string;
+  /** true = tiene cartel colocado ("Placas" = Si en el PDF). */
+  signagePlaced: boolean;
   featured: boolean;
   tags: string[];
   assignedAgent: {
@@ -124,8 +157,4 @@ export interface AppUser {
   avatar?: string;
   active: boolean;
   createdAt: string; // YYYY-MM-DD
-}
-
-export interface StoredUser extends AppUser {
-  passwordDigest: string;
 }

@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { AppUser, ROLE_PERMISSIONS, RolePermissions } from '../types';
 import * as userStore from '../services/userStore';
 
@@ -7,56 +7,96 @@ interface AuthContextValue {
   users: AppUser[];
   permissions: RolePermissions | null;
   isAuthenticated: boolean;
-  signIn: (email: string, password: string) => userStore.LoginResult;
-  signOut: () => void;
-  refreshUsers: () => void;
-  addUser: (input: userStore.CreateUserInput) => userStore.CreateUserResult;
-  toggleUserActive: (id: string, active: boolean) => void;
-  changeUserRole: (id: string, role: AppUser['role']) => void;
+  /**.True mientras se resuelve la cookie de sesión al cargar la página. */
+  isBootstrapping: boolean;
+  signIn: (email: string, password: string) => Promise<userStore.LoginResult>;
+  signOut: () => Promise<void>;
+  refreshUsers: () => Promise<void>;
+  addUser: (input: userStore.CreateUserInput) => Promise<userStore.CreateUserResult>;
+  toggleUserActive: (id: string, active: boolean) => Promise<void>;
+  changeUserRole: (id: string, role: AppUser['role']) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<AppUser | null>(() => userStore.getSessionUser());
-  const [users, setUsers] = useState<AppUser[]>(() => userStore.listUsers());
+  const [user, setUser] = useState<AppUser | null>(null);
+  const [users, setUsers] = useState<AppUser[]>([]);
+  const [isBootstrapping, setIsBootstrapping] = useState(true);
 
-  const refreshUsers = useCallback(() => {
-    setUsers(userStore.listUsers());
+  // Al recargar, la sesión se recupera desde la cookie httpOnly. Antes de que
+  // responda, isBootstrapping evita que App muestre el login y después salte al
+  // panel: un parpadeo en cada recarga.
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      const session = await userStore.getSessionUser();
+      if (cancelled) return;
+      setUser(session);
+      setIsBootstrapping(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const signIn = useCallback((email: string, password: string) => {
-    const result = userStore.login(email, password);
-    if (result.ok) {
-      setUser(result.user);
-      setUsers(userStore.listUsers());
+  const refreshUsers = useCallback(async () => {
+    setUsers(await userStore.listUsers());
+  }, []);
+
+  // La lista de usuarios es un endpoint de jefatura: un asesor recibiría un 403
+  // al pedirla, así que se consulta sólo cuando tiene permiso.
+  useEffect(() => {
+    if (!user || !ROLE_PERMISSIONS[user.role].canManageUsers) {
+      setUsers([]);
+      return;
     }
+    let cancelled = false;
+    void userStore
+      .listUsers()
+      .then((list) => {
+        if (!cancelled) setUsers(list);
+      })
+      .catch(() => {
+        if (!cancelled) setUsers([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  const signIn = useCallback(async (email: string, password: string) => {
+    const result = await userStore.login(email, password);
+    if (result.ok) setUser(result.user);
     return result;
   }, []);
 
-  const signOut = useCallback(() => {
-    userStore.logout();
+  const signOut = useCallback(async () => {
+    await userStore.logout();
     setUser(null);
+    setUsers([]);
   }, []);
 
   const addUser = useCallback(
-    (input: userStore.CreateUserInput) => {
-      const result = userStore.createUser(input);
-      if (result.ok) setUsers(userStore.listUsers());
+    async (input: userStore.CreateUserInput) => {
+      const result = await userStore.createUser(input);
+      if (result.ok) await refreshUsers();
       return result;
     },
-    []
+    [refreshUsers]
   );
 
-  const toggleUserActive = useCallback((id: string, active: boolean) => {
-    userStore.setUserActive(id, active);
-    setUsers(userStore.listUsers());
+  const toggleUserActive = useCallback(async (id: string, active: boolean) => {
+    await userStore.setUserActive(id, active);
+    setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, active } : u)));
     setUser((prev) => (prev && prev.id === id ? { ...prev, active } : prev));
   }, []);
 
-  const changeUserRole = useCallback((id: string, role: AppUser['role']) => {
-    userStore.setUserRole(id, role);
-    setUsers(userStore.listUsers());
+  const changeUserRole = useCallback(async (id: string, role: AppUser['role']) => {
+    await userStore.setUserRole(id, role);
+    setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, role } : u)));
     setUser((prev) => (prev && prev.id === id ? { ...prev, role } : prev));
   }, []);
 
@@ -68,6 +108,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       users,
       permissions,
       isAuthenticated: user !== null,
+      isBootstrapping,
       signIn,
       signOut,
       refreshUsers,
@@ -75,7 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       toggleUserActive,
       changeUserRole,
     }),
-    [user, users, permissions, signIn, signOut, refreshUsers, addUser, toggleUserActive, changeUserRole]
+    [user, users, permissions, isBootstrapping, signIn, signOut, refreshUsers, addUser, toggleUserActive, changeUserRole]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

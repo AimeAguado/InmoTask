@@ -1,10 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Property, Task, TaskStatus, FinancialEntry } from './types';
-import {
-  INITIAL_PROPERTIES,
-  INITIAL_TASKS,
-  INITIAL_FINANCIAL_ENTRIES,
-} from './data/mockData';
+import { financialsApi, propertiesApi, tasksApi, toMessage } from './services/api';
 import { Logo } from './components/ui/Logo';
 import { Button } from './components/ui/Button';
 import { DashboardView } from './components/views/DashboardView';
@@ -32,16 +28,18 @@ import {
   Users as UsersIcon,
   LogOut,
   ChevronUp,
+  Loader2,
 } from 'lucide-react';
 
 type ViewMode = 'dashboard' | 'properties' | 'tasks' | 'design-system' | 'users';
 
 export default function App() {
-  const { user, permissions, isAuthenticated, signOut } = useAuth();
+  const { user, permissions, isAuthenticated, isBootstrapping, signOut } = useAuth();
   // Main Data States (Operational Real Estate: Properties & Internal Tasks)
-  const [properties, setProperties] = useState<Property[]>(INITIAL_PROPERTIES);
-  const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
-  const [financialEntries] = useState<FinancialEntry[]>(INITIAL_FINANCIAL_ENTRIES);
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [financialEntries, setFinancialEntries] = useState<FinancialEntry[]>([]);
+  const [isLoadingData, setIsLoadingData] = useState(false);
 
   // Active View State
   const [activeView, setActiveView] = useState<ViewMode>('dashboard');
@@ -112,60 +110,127 @@ export default function App() {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
+  // Finanzas es un endpoint de jefatura: pedirlo siempre devolvería 403 para un
+  // asesor y ensuciaría la consola con un error esperado.
+  const canSeeFinancials = permissions?.canViewFinancials ?? false;
+
+  const loadData = useCallback(async () => {
+    setIsLoadingData(true);
+    try {
+      const [props, tsk] = await Promise.all([propertiesApi.list(), tasksApi.list()]);
+      setProperties(props.properties);
+      setTasks(tsk.tasks);
+
+      if (canSeeFinancials) {
+        const fin = await financialsApi.list();
+        setFinancialEntries(fin.entries);
+      } else {
+        setFinancialEntries([]);
+      }
+    } catch (err) {
+      showToast(toMessage(err));
+    } finally {
+      setIsLoadingData(false);
+    }
+  }, [canSeeFinancials]);
+
+  // Los datos se piden recién con sesión activa: antes de eso cualquier endpoint
+  // responde 401 y no hay nada que mostrar.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    void loadData();
+  }, [isAuthenticated, loadData]);
+
   const handleSignOut = () => {
     setIsUserMenuOpen(false);
     setIsQuickCreateOpen(false);
     setActiveView('dashboard');
-    signOut();
+    // Se vacían los caches locales: si otro usuario entra en el mismo navegador
+    // no puede ver por un instante los datos del anterior.
+    setProperties([]);
+    setTasks([]);
+    setFinancialEntries([]);
+    void signOut();
   };
+
+  if (isBootstrapping) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <Loader2 className="w-6 h-6 text-emerald-600 animate-spin" />
+      </div>
+    );
+  }
 
   if (!isAuthenticated || !user) {
     return <LoginView />;
   }
 
   // Property Handlers
-  const handleSaveProperty = (property: Property) => {
-    setProperties((prev) => {
-      const exists = prev.some((p) => p.id === property.id);
-      if (exists) {
-        showToast(`Ficha de ${property.code} actualizada correctamente.`);
-        return prev.map((p) => (p.id === property.id ? property : p));
-      } else {
-        showToast(`Inmueble ${property.code} registrado en cartelera.`);
-        return [property, ...prev];
-      }
-    });
+  // El id del modal no viene de Mongo: las fichas nuevas usan 'prop-<timestamp>'
+  // como id temporal. Si no está en la lista, es un alta; si está, un PUT.
+  const handleSaveProperty = async (property: Property) => {
+    const exists = properties.some((p) => p.id === property.id);
+    try {
+      const { property: saved } = exists
+        ? await propertiesApi.update(property.id, property)
+        : await propertiesApi.create(property);
+
+      setProperties((prev) =>
+        exists ? prev.map((p) => (p.id === saved.id ? saved : p)) : [saved, ...prev]
+      );
+      showToast(
+        exists
+          ? `Ficha de ${saved.code} actualizada correctamente.`
+          : `Inmueble ${saved.code} registrado en cartelera.`
+      );
+    } catch (err) {
+      showToast(toMessage(err));
+    }
   };
 
-  const handleDeleteProperty = (id: string) => {
+  const handleDeleteProperty = async (id: string) => {
     const prop = properties.find((p) => p.id === id);
-    if (confirm(`¿Confirma que desea retirar el inmueble "${prop?.title || id}"?`)) {
+    if (!confirm(`¿Confirma que desea retirar el inmueble "${prop?.title || id}"?`)) return;
+
+    try {
+      await propertiesApi.remove(id);
       setProperties((prev) => prev.filter((p) => p.id !== id));
       showToast('Inmueble eliminado de la cartelera.');
+    } catch (err) {
+      showToast(toMessage(err));
     }
   };
 
   // Task Handlers
-  const handleSaveTask = (task: Task) => {
-    setTasks((prev) => {
-      const exists = prev.some((t) => t.id === task.id);
-      if (exists) {
-        showToast('Tarea u orden de trabajo actualizada.');
-        return prev.map((t) => (t.id === task.id ? task : t));
-      } else {
-        showToast('Nueva tarea registrada en la agenda.');
-        return [task, ...prev];
-      }
-    });
+  const handleSaveTask = async (task: Task) => {
+    const exists = tasks.some((t) => t.id === task.id);
+    try {
+      const { task: saved } = exists
+        ? await tasksApi.update(task.id, task)
+        : await tasksApi.create(task);
+
+      setTasks((prev) => (exists ? prev.map((t) => (t.id === saved.id ? saved : t)) : [saved, ...prev]));
+      showToast(exists ? 'Tarea u orden de trabajo actualizada.' : 'Nueva tarea registrada en la agenda.');
+    } catch (err) {
+      showToast(toMessage(err));
+    }
   };
 
-  const handleDeleteTask = (id: string) => {
-    setTasks((prev) => prev.filter((t) => t.id !== id));
-    showToast('Tarea eliminada de la agenda.');
+  const handleDeleteTask = async (id: string) => {
+    try {
+      await tasksApi.remove(id);
+      setTasks((prev) => prev.filter((t) => t.id !== id));
+      showToast('Tarea eliminada de la agenda.');
+    } catch (err) {
+      showToast(toMessage(err));
+    }
   };
 
   const handleToggleTaskStatus = (task: Task) => {
     const nextStatus: TaskStatus = task.status === 'completada' ? 'pendiente' : 'completada';
+
+    // Se aplica el cambio local al instante y se revierte si la API lo rechaza:
+    // marcar una tarea es una acción de un click y no debería esperar al round trip.
     setTasks((prev) =>
       prev.map((t) =>
         t.id === task.id
@@ -177,6 +242,17 @@ export default function App() {
           : t
       )
     );
+
+    void tasksApi
+      .setStatus(task.id, nextStatus)
+      .then(({ task: saved }) => {
+        setTasks((prev) => prev.map((t) => (t.id === saved.id ? saved : t)));
+      })
+      .catch((err: unknown) => {
+        setTasks((prev) => prev.map((t) => (t.id === task.id ? task : t)));
+        showToast(toMessage(err));
+      });
+
     showToast(
       nextStatus === 'completada'
         ? `Visita/tarea completada: "${task.title}"`
@@ -196,6 +272,17 @@ export default function App() {
           : t
       )
     );
+
+    void tasksApi
+      .setStatus(task.id, newStatus)
+      .then(({ task: saved }) => {
+        setTasks((prev) => prev.map((t) => (t.id === saved.id ? saved : t)));
+      })
+      .catch((err: unknown) => {
+        setTasks((prev) => prev.map((t) => (t.id === task.id ? task : t)));
+        showToast(toMessage(err));
+      });
+
     showToast(`Tarea movida a "${newStatus.replace('_', ' ')}"`);
   };
 
@@ -488,6 +575,13 @@ export default function App() {
 
       {/* Main Viewport Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6">
+        {isLoadingData && properties.length === 0 && tasks.length === 0 ? (
+          <div className="flex items-center justify-center py-24 text-slate-400">
+            <Loader2 className="w-5 h-5 animate-spin mr-2.5" />
+            <span className="text-sm">Cargando datos desde la base...</span>
+          </div>
+        ) : (
+          <>
         {activeView === 'dashboard' && (
           <DashboardView
             properties={properties}
@@ -580,6 +674,8 @@ export default function App() {
         {activeView === 'users' && permissions?.canManageUsers && <UsersView />}
 
         {activeView === 'design-system' && <DesignSystemView />}
+          </>
+        )}
       </main>
 
       {/* Global Modals */}

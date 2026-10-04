@@ -29,7 +29,7 @@ export const LoginView: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -39,17 +39,17 @@ export const LoginView: React.FC = () => {
     }
 
     setIsSubmitting(true);
-    const result = signIn(email, password);
+    const result = await signIn(email, password);
     setIsSubmitting(false);
 
     if (result.ok) return;
 
     if (result.reason === 'inactive') {
       setError('Tu cuenta está desactivada. Contactá a jefatura para reactivarla.');
-    } else if (result.reason === 'unknown-email') {
-      setError('No existe un usuario con ese email.');
+    } else if (result.reason === 'server') {
+      setError('No pudimos conectar con el servidor. Intentá de nuevo en un momento.');
     } else {
-      setError('La contraseña no coincide.');
+      setError('Email o contraseña incorrectos.');
     }
   };
 
@@ -175,8 +175,8 @@ export const LoginView: React.FC = () => {
           ))}
 
           <p className="text-[11px] text-slate-400 leading-relaxed pt-1">
-            Demo client-side: las cuentas viven en el <code className="font-mono">localStorage</code>{' '}
-            del navegador. No es autenticación real.
+            Sesión real: el login se valida contra la base de datos y la cookie de sesión es{' '}
+            <code className="font-mono">httpOnly</code>, inaccesible desde JavaScript.
           </p>
         </div>
       </div>
