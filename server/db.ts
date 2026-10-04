@@ -33,6 +33,28 @@ export const connectDb = async (): Promise<typeof mongoose> => {
   }
 
   console.log(`[db] conectado a la base "${name}" (${host})`);
+
+  // La conexión puede ser correcta y aun así apuntar a una base VACÍA: un
+  // MONGODB_DB distinto en el deploy, o una URI a otro cluster. El síntoma desde
+  // el navegador es "Email o contraseña incorrectos" para todos los usuarios, que
+  // no dice nada sobre la causa real; este log la delata en los logs de Vercel.
+  const db = mongoose.connection.db;
+  if (!db) {
+    console.warn(`[db] la conexión a "${name}" no expone una base: no se puede verificar si tiene usuarios.`);
+    return mongoose;
+  }
+
+  const users = await db.collection('appusers').countDocuments();
+  if (users === 0) {
+    console.warn(
+      `[db] ATENCIÓN: la base "${name}" no tiene usuarios. Si esperás poder entrar, ` +
+        'MONGODB_URI o MONGODB_DB apuntan a otra base. Cargá los datos con ' +
+        '"npm run seed" contra esa base, o corregí las variables del deploy.'
+    );
+  } else {
+    console.log(`[db] ${users} usuario(s) en la base "${name}"`);
+  }
+
   return mongoose;
 };
 
