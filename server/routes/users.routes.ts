@@ -1,16 +1,14 @@
 import { Router } from 'express';
-import bcrypt from 'bcryptjs';
 import { AppUserModel } from '../models/AppUser.js';
 import { serializeUser } from '../lib/serialize.js';
 import { ApiError, asyncHandler } from '../lib/http.js';
 import { asBoolean, asEnum, asString } from '../lib/validation.js';
 import { requireAuth, requireAdmin, scope } from '../middleware/auth.js';
-import { saveAvatar } from '../lib/avatarStorage.js';
+import { removeAvatar, saveAvatar } from '../lib/avatarStorage.js';
+import { assertPasswordStrength, hashPassword } from '../lib/password.js';
 import type { UserRole } from '../../src/types/index.js';
 
 const ROLES: readonly UserRole[] = ['admin', 'asesor'];
-const SALT_ROUNDS = 12;
-const MIN_PASSWORD_LENGTH = 8;
 
 export const usersRouter = Router();
 
@@ -54,12 +52,7 @@ usersRouter.post(
     const license = asString(req.body?.license, 'license', { max: 80 });
     const avatar = asString(req.body?.avatar, 'avatar', { max: 500 });
 
-    if (password.length < MIN_PASSWORD_LENGTH) {
-      throw ApiError.badRequest(
-        'weak_password',
-        `La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres.`
-      );
-    }
+    assertPasswordStrength(password);
     if (!email.includes('@')) {
       throw ApiError.badRequest('validation_error', 'El email no tiene un formato válido.');
     }
@@ -81,7 +74,7 @@ usersRouter.post(
       phone,
       license,
       avatar,
-      passwordHash: await bcrypt.hash(password, SALT_ROUNDS),
+      passwordHash: await hashPassword(password),
     });
 
     res.status(201).json({ user: serializeUser(created, req.user!.inmoviliaria) });
@@ -145,6 +138,48 @@ usersRouter.patch(
     target.active = active;
     await target.save();
     res.json({ user: serializeUser(target, req.user!.inmoviliaria) });
+  })
+);
+
+/**
+ * Baja definitiva de un usuario de la propia inmobiliaria.
+ *
+ * Es un borrado real, no una desactivación, así que conviene que el admin lo
+ * confirme en la UI. No deja datos colgando: las tareas guardan una copia del
+ * nombre del asignado y no una referencia, y los finanzas sólo apuntan a la
+ * inmobiliaria.
+ */
+usersRouter.delete(
+  '/:id',
+  asyncHandler(async (req, res) => {
+    const target = await findInTenant(req.params.id, req.user!.inmoviliariaId);
+
+    if (String(target._id) === req.user?.id) {
+      throw ApiError.conflict('self-delete', 'No podés borrar tu propia cuenta.');
+    }
+
+    // Borrar al único admin activo dejaría a la empresa sin nadie que gestione
+    // usuarios ni pueda volver a crear cuentas: nadie podría entrar a arreglarlo.
+    if (target.role === 'admin' && target.active) {
+      const otrosAdmins = await AppUserModel.countDocuments({
+        ...scope(req),
+        role: 'admin',
+        active: true,
+        _id: { $ne: target._id },
+      });
+      if (otrosAdmins === 0) {
+        throw ApiError.conflict(
+          'last-admin',
+          'No podés borrar al único administrador activo de la inmobiliaria.'
+        );
+      }
+    }
+
+    await AppUserModel.deleteOne({ _id: target._id });
+    // Si no se borra el archivo, queda una foto huérfana en public/uploads.
+    await removeAvatar(target.avatar);
+
+    res.status(204).end();
   })
 );
 

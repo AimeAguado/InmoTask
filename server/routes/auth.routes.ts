@@ -4,11 +4,10 @@ import { AppUserModel } from '../models/AppUser.js';
 import { InmobiliariaModel } from '../models/Inmobiliaria.js';
 import { serializeUser } from '../lib/serialize.js';
 import { ApiError, asyncHandler } from '../lib/http.js';
+import { assertPasswordStrength, hashPassword, SALT_ROUNDS, verifyPassword } from '../lib/password.js';
 import { asString } from '../lib/validation.js';
 import { saveAvatar } from '../lib/avatarStorage.js';
 import { clearSessionCookie, requireAuth, setSessionCookie, signSession } from '../middleware/auth.js';
-
-const SALT_ROUNDS = 12;
 
 // Hash señuelo generado al arrancar: se compara contra él cuando el email no
 // existe, para que ese camino gaste lo mismo que un login real y el tiempo de
@@ -45,6 +44,49 @@ authRouter.post(
     // vez para que la UI pueda mostrar "InmoTask" junto al usuario desde el login.
     const inmobiliaria = await InmobiliariaModel.findById(user.inmoviliariaId).select('name active');
     res.json({ user: serializeUser(user, inmobiliaria?.name ?? '') });
+  })
+);
+
+/**
+ * Cambio de contraseña de la cuenta propia.
+ *
+ * Exige la contraseña actual a propósito. Si no la pidiera, cualquiera que se
+ * hubiera quedado con la cookie de sesión (un XSS, una cookie robada en un
+ * navegador compartido) podría fijar una contraseña nueva y quedarse con la
+ * cuenta para siempre.
+ */
+authRouter.patch(
+  '/password',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const currentPassword = asString(req.body?.currentPassword, 'currentPassword', {
+      required: true,
+      max: 200,
+    });
+    const newPassword = asString(req.body?.newPassword, 'newPassword', { required: true, max: 200 });
+
+    const doc = await AppUserModel.findById(req.user!.id).select('+passwordHash');
+    if (!doc) throw ApiError.unauthorized('unknown-user', 'La cuenta ya no existe.');
+
+    if (!(await verifyPassword(currentPassword, doc.passwordHash))) {
+      // 400 y no 401: la sesión sigue siendo válida, lo que falló es un dato del
+      // formulario. Un 401 haría que el front cierre sesión y loftie al login.
+      throw ApiError.badRequest('wrong_password', 'La contraseña actual no es correcta.');
+    }
+
+    if (await verifyPassword(newPassword, doc.passwordHash)) {
+      throw ApiError.badRequest(
+        'same_password',
+        'La contraseña nueva tiene que ser distinta de la actual.'
+      );
+    }
+
+    assertPasswordStrength(newPassword);
+
+    doc.passwordHash = await hashPassword(newPassword);
+    await doc.save();
+
+    res.status(204).end();
   })
 );
 
