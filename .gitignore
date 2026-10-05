@@ -6,3 +6,17 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# El patrón ".env*" de arriba sólo cubre archivos cuyo nombre EMPIEZA con ".env".
+# Atlas genera "atlas-credentials.env", que no matchea y quedaba trackeado con la
+# password dentro. Estas reglas cubren cualquier archivo de credenciales por
+# nombre, sin importar cómo lo llamen.
+*credential*
+*secret*
+*password*
+*_creds.env
+
+# Las fotos de perfil se escriben en disco al runtime. Trackearlas metería
+# avatares de usuarios en el repo y, en Vercel, el disco es efímero igual:
+# ningún archivo subido sobrevive a un redeploy.
+public/uploads/
