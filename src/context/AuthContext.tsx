@@ -13,6 +13,8 @@ interface AuthContextValue {
   /**.True mientras se resuelve la cookie de sesión al cargar la página. */
   isBootstrapping: boolean;
   signIn: (email: string, password: string) => Promise<userStore.LoginResult>;
+  /** "Continuar con Google": el backend valida el id_token y abre sesión. */
+  signInWithGoogle: (credential: string) => Promise<userStore.GoogleLoginResult>;
   signOut: () => Promise<void>;
   /** Guarda nombre, apellido, teléfono y foto de la cuenta propia. */
   updateProfile: (input: ProfileDraft) => Promise<void>;
@@ -80,6 +82,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return result;
   }, []);
 
+  const signInWithGoogle = useCallback(async (credential: string) => {
+    const result = await userStore.loginWithGoogle(credential);
+    if (result.ok) setUser(result.user);
+    return result;
+  }, []);
+
   const signOut = useCallback(async () => {
     await userStore.logout();
     setUser(null);
@@ -133,6 +141,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isAuthenticated: user !== null,
       isBootstrapping,
       signIn,
+      signInWithGoogle,
       signOut,
       updateProfile,
       updateUser,
@@ -147,6 +156,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       permissions,
       isBootstrapping,
       signIn,
+      signInWithGoogle,
       signOut,
       updateProfile,
       updateUser,

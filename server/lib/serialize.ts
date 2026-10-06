@@ -1,9 +1,8 @@
 import type { AppUserDoc } from '../models/AppUser.js';
 import mongoose from 'mongoose';
-import type { FinancialEntryDoc } from '../models/FinancialEntry.js';
 import type { PropertyDoc } from '../models/Property.js';
 import type { TaskDoc } from '../models/Task.js';
-import type { AppUser, FinancialEntry, Property, Task } from '../../src/types/index.js';
+import type { AppUser, Property, Task } from '../../src/types/index.js';
 
 /**
  * La UI trabaja con fechas como 'YYYY-MM-DD' (ver src/types). Mongo las guarda
@@ -78,16 +77,6 @@ export const serializeTask = (doc: TaskDoc): Task => ({
     avatar: opt(doc.assignedTo.avatar),
   },
   completedAt: doc.completedAt?.toISOString(),
-});
-
-export const serializeEntry = (doc: FinancialEntryDoc): FinancialEntry => ({
-  id: String(doc._id),
-  type: doc.type,
-  category: doc.category,
-  concept: doc.concept,
-  amount: doc.amount,
-  date: ymd(doc.date) ?? '',
-  propertyCode: opt(doc.propertyCode),
 });
 
 /**

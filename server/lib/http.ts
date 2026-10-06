@@ -32,6 +32,11 @@ export class ApiError extends Error {
   static conflict(code: string, message: string): ApiError {
     return new ApiError(409, code, message);
   }
+
+  /** 503: el servidor no está en condiciones de atender (falta de configuración). */
+  static serviceUnavailable(code = 'service-unavailable', message = 'El servicio no está disponible.'): ApiError {
+    return new ApiError(503, code, message);
+  }
 }
 
 type AsyncRequestHandler = (

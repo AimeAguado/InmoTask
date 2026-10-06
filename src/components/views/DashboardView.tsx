@@ -1,10 +1,9 @@
 import React from 'react';
-import { Property, Task, FinancialEntry } from '../../types';
+import { Property, Task } from '../../types';
 import { MetricCard } from '../ui/Card';
 import { PropertyCard } from '../domain/PropertyCard';
 import { TaskCard } from '../domain/TaskCard';
 import { WeeklySummaryPanel } from '../domain/WeeklySummaryPanel';
-import { MonthlyFinancialsCard } from '../domain/MonthlyFinancialsCard';
 import { Button } from '../ui/Button';
 import {
   Building2,
@@ -18,8 +17,6 @@ import {
 interface DashboardViewProps {
   properties: Property[];
   tasks: Task[];
-  financialEntries: FinancialEntry[];
-  canViewFinancials: boolean;
   onNavigate: (view: 'dashboard' | 'properties' | 'tasks' | 'design-system') => void;
   onNewProperty: () => void;
   onNewTask: () => void;
@@ -31,8 +28,6 @@ interface DashboardViewProps {
 export const DashboardView: React.FC<DashboardViewProps> = ({
   properties,
   tasks,
-  financialEntries,
-  canViewFinancials,
   onNavigate,
   onNewProperty,
   onNewTask,
@@ -191,14 +186,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         />
       </div>
 
-      {/* Misma franja: Resultado Financiero del Mes + Resumen Semanal de Productividad */}
-      <div
-        className={`grid gap-6 items-start ${
-          canViewFinancials ? 'grid-cols-1 xl:grid-cols-2' : 'grid-cols-1'
-        }`}
-      >
-        {canViewFinancials && <MonthlyFinancialsCard entries={financialEntries} />}
-
+      {/* Resumen Semanal de Productividad */}
+      <div className="grid gap-6 items-start grid-cols-1">
         <WeeklySummaryPanel
           tasks={tasks}
           onNavigateToTasks={() => onNavigate('tasks')}

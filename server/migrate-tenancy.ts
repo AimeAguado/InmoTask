@@ -26,7 +26,6 @@ import { config } from './config.js';
 import { AppUserModel } from './models/AppUser.js';
 import { PropertyModel } from './models/Property.js';
 import { TaskModel } from './models/Task.js';
-import { FinancialEntryModel } from './models/FinancialEntry.js';
 import { InmobiliariaModel } from './models/Inmobiliaria.js';
 
 const APPLY = process.argv.includes('--apply');
@@ -217,11 +216,10 @@ const migratePropertyIndex = async (): Promise<void> => {
 
 /** Reporte de passwords: avisa si algún usuario quedó con hash vacío o inválido. */
 const audit = async (): Promise<void> => {
-  const [users, props, tasks, entries, empresas] = await Promise.all([
+  const [users, props, tasks, empresas] = await Promise.all([
     AppUserModel.countDocuments({}),
     PropertyModel.countDocuments({}),
     TaskModel.countDocuments({}),
-    FinancialEntryModel.countDocuments({}),
     InmobiliariaModel.countDocuments({}),
   ]);
 
@@ -231,7 +229,6 @@ const audit = async (): Promise<void> => {
   log(`  usuarios:      ${users}`);
   log(`  inmuebles:     ${props}`);
   log(`  tareas:        ${tasks}`);
-  log(`  movimientos:   ${entries}`);
 };
 
 const main = async (): Promise<void> => {
@@ -244,7 +241,6 @@ const main = async (): Promise<void> => {
   await migrateUsers(inmoviliariaId);
   await adoptOrphans('inmuebles', PropertyModel, inmoviliariaId);
   await adoptOrphans('tareas', TaskModel, inmoviliariaId);
-  await adoptOrphans('movimientos', FinancialEntryModel, inmoviliariaId);
   await migratePropertyIndex();
   await audit();
 

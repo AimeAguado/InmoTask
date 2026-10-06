@@ -48,8 +48,8 @@ export const connectDb = async (): Promise<typeof mongoose> => {
   if (users === 0) {
     console.warn(
       `[db] ATENCIÓN: la base "${name}" no tiene usuarios. Si esperás poder entrar, ` +
-        'MONGODB_URI o MONGODB_DB apuntan a otra base. Cargá los datos con ' +
-        '"npm run seed" contra esa base, o corregí las variables del deploy.'
+        'MONGODB_URI o MONGODB_DB apuntan a otra base. Creá el primer administrador ' +
+        'con "npm run create:inmoviliaria" contra esa base, o corregí las variables del deploy.'
     );
   } else {
     console.log(`[db] ${users} usuario(s) en la base "${name}"`);

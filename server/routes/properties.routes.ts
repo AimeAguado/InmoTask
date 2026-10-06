@@ -12,7 +12,7 @@ import {
   asStringArray,
   stripServerFields,
 } from '../lib/validation.js';
-import { requireAdmin, requireAuth, scope } from '../middleware/auth.js';
+import { requireAuth, scope } from '../middleware/auth.js';
 import type {
   Currency,
   KeysLocation,
@@ -211,7 +211,6 @@ propertiesRouter.put(
 
 propertiesRouter.delete(
   '/:id',
-  requireAdmin,
   asyncHandler(async (req, res) => {
     const doc = await PropertyModel.findOne({ ...scope(req), _id: req.params.id });
     if (!doc) throw ApiError.notFound('Inmueble no encontrado.');

@@ -1,4 +1,4 @@
-import type { AppUser, FinancialEntry, Property, Task, TaskStatus, UserRole } from '../types';
+import type { AppUser, Property, Task, TaskStatus, UserRole } from '../types';
 
 /**
  * Rutas relativas a propósito: el dev server de Vite proxea /api al backend
@@ -60,17 +60,42 @@ const json = (body: unknown): RequestInit => ({
 
 // ------------------------------------------------------------------ auth ----
 
+export type RegisterInput = {
+  firstName: string;
+  lastName: string;
+  phone: string;
+  email: string;
+  password: string;
+  inmobiliaria: string;
+};
+
+export type AuthConfig = {
+  googleEnabled: boolean;
+  googleClientId: string;
+};
+
 export const authApi = {
   login: (email: string, password: string) =>
     request<{ user: AppUser }>('/auth/login', json({ email, password })),
+
+  register: (input: RegisterInput) =>
+    request<{ user: AppUser }>('/auth/register', json(input)),
+
+  /** "Continuar con Google": manda el id_token que generó GIS en el navegador. */
+  google: (credential: string) =>
+    request<{ user: AppUser }>('/auth/google', json({ credential })),
+
+  config: () => request<AuthConfig>('/auth/config'),
 
   logout: () => request<void>('/auth/logout', { method: 'POST' }),
 
   session: () => request<{ user: AppUser }>('/auth/session'),
 
-  /** Perfil propio: nombre, apellido, teléfono y foto. El rol y la empresa los
-   *  cambia el admin, no el usuario. */
-  updateMe: (input: Partial<Pick<AppUser, 'firstName' | 'lastName' | 'phone' | 'avatar'>>) =>
+  /** Perfil propio: nombre, apellido, teléfono, email y foto. El rol y la empresa
+   *  los cambia el admin, no el usuario. El email pasa a ser el nuevo login. */
+  updateMe: (
+    input: Partial<Pick<AppUser, 'firstName' | 'lastName' | 'phone' | 'email' | 'avatar'>>
+  ) =>
     request<{ user: AppUser }>('/auth/me', {
       method: 'PATCH',
       body: JSON.stringify(input),
@@ -167,12 +192,6 @@ export const tasksApi = {
     }),
 
   remove: (id: string) => request<void>(`/tasks/${id}`, { method: 'DELETE' }),
-};
-
-// ------------------------------------------------------------- financial ----
-
-export const financialsApi = {
-  list: () => request<{ entries: FinancialEntry[] }>('/financials'),
 };
 
 /** Traduce los fallos de red a un mensaje presentable en la UI. */

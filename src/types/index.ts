@@ -112,33 +112,6 @@ export interface MetricCardData {
   iconName: string;
 }
 
-export type FinancialEntryType = 'ingreso' | 'egreso';
-
-export type FinancialCategory =
-  | 'Comisiones por Venta'
-  | 'Comisiones por Alquiler'
-  | 'Honorarios de Administración'
-  | 'Marketing y Cartelería'
-  | 'Sueldos y Cargas Sociales'
-  | 'Alquileres y Servicios'
-  | 'Tecnología y Software'
-  | 'Impuestos y Tasas';
-
-export interface FinancialEntry {
-  id: string;
-  type: FinancialEntryType;
-  category: FinancialCategory;
-  concept: string;
-  amount: number;
-  date: string; // YYYY-MM-DD
-  propertyCode?: string;
-}
-
-/**
- * 'admin' es el usuario de la propia inmobiliaria: da de alta a sus asesores y
- * ve los finanzas de SU empresa. Reemplaza a 'jefatura', que era un rol global
- * sin ninguna empresa detrás.
- */
 export type UserRole = 'admin' | 'asesor';
 
 export interface Inmobiliaria {
@@ -153,28 +126,30 @@ export interface Inmobiliaria {
   createdAt: string;
 }
 
+/**
+ * Permisos: usuario → inmobiliaria → acceso completo a los datos operativos de
+ * esa inmobiliaria (propiedades, tareas, visitas, finanzas, estadísticas).
+ * No hay restricción por rol para operar. El ÚNICO permiso exclusivo del admin
+ * es la gestión de usuarios de su propia inmobiliaria (crear, desactivar,
+ * eliminar y listar). El backend lo valida igual aunque la UI no muestre botones.
+ */
 export interface RolePermissions {
   label: string;
   description: string;
-  canViewFinancials: boolean;
+  /** Único permiso exclusivo del administrador: gestión de usuarios. */
   canManageUsers: boolean;
-  canDeleteProperties: boolean;
 }
 
 export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
   asesor: {
     label: 'Asesor',
-    description: 'Opera la cartera de inmuebles y la agenda de tareas de su inmobiliaria.',
-    canViewFinancials: false,
+    description: 'Acceso operativo completo de su inmobiliaria: propiedades, tareas, visitas y finanzas.',
     canManageUsers: false,
-    canDeleteProperties: false,
   },
   admin: {
     label: 'Administrador',
-    description: 'Administra los usuarios y los finanzas de su propia inmobiliaria.',
-    canViewFinancials: true,
+    description: 'Acceso operativo completo más la gestión de los usuarios de su inmobiliaria.',
     canManageUsers: true,
-    canDeleteProperties: true,
   },
 };
 

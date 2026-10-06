@@ -123,7 +123,7 @@ const NewUserForm: React.FC<{ onDone: () => void }> = ({ onDone }) => {
         <Input
           label="Email"
           type="email"
-          placeholder="usuario@inmotask.com"
+          placeholder="usuario@email.com"
           value={form.email}
           onChange={update('email')}
           required
@@ -131,7 +131,7 @@ const NewUserForm: React.FC<{ onDone: () => void }> = ({ onDone }) => {
         <Input
           label="Contraseña provisional"
           type="text"
-          placeholder="Mínimo 6 caracteres"
+          placeholder="Mínimo 8 caracteres"
           value={form.password}
           onChange={update('password')}
           helperText="Se la comunicás al usuario para su primer ingreso."
@@ -356,7 +356,7 @@ export const UsersView: React.FC = () => {
                     }`}
                   />
                   <span className="hidden xl:inline max-w-[180px] truncate">
-                    {permissions.canManageUsers ? 'Finanzas + usuarios' : 'Cartera y tareas'}
+                    {permissions.canManageUsers ? 'Gestión de usuarios' : 'Acceso operativo completo'}
                   </span>
                 </div>
 

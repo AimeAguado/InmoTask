@@ -9,23 +9,13 @@
  * inmueble recién insertado, que es lo que ahora guarda la referencia.
  */
 import mongoose from 'mongoose';
-import bcrypt from 'bcryptjs';
 import { connectDb, disconnectDb } from './db.js';
 import { config } from './config.js';
 import { PropertyModel } from './models/Property.js';
 import { TaskModel } from './models/Task.js';
-import { FinancialEntryModel } from './models/FinancialEntry.js';
-import { AppUserModel } from './models/AppUser.js';
 import { InmobiliariaModel } from './models/Inmobiliaria.js';
-import {
-  INITIAL_PROPERTIES,
-  INITIAL_TASKS,
-  INITIAL_FINANCIAL_ENTRIES,
-} from '../src/data/mockData.js';
-import type { AppUser, UserRole } from '../src/types/index.js';
+import { INITIAL_PROPERTIES, INITIAL_TASKS } from '../src/data/mockData.js';
 
-const DEMO_PASSWORD = 'inmotask';
-const SALT_ROUNDS = 12;
 const KEEP_EXISTING = process.argv.includes('--keep');
 
 /** Base propiedad de este proyecto. El seed se niega a correr sobre otra. */
@@ -39,47 +29,6 @@ const SEED_INMOBILIARIA = {
   phone: '+54 11 4829-9182',
   email: 'contacto@inmotask.com',
 };
-
-type SeedUser = Omit<AppUser, 'createdAt' | 'inmoviliariaId' | 'inmoviliaria'> & {
-  createdAt: string;
-};
-
-const SEED_USERS: SeedUser[] = [
-  {
-    id: 'usr-1',
-    name: 'Natalia Aimé',
-    firstName: 'Natalia',
-    lastName: 'Aimé',
-    email: 'natalia@inmotask.com',
-    role: 'admin',
-    phone: '+54 9 11 4829-9182',
-    license: 'CUCICBA Mat. 7412',
-    avatar: '/src/assets/images/avatar_natalia_1790435623633.jpg',
-    active: true,
-    createdAt: '2026-01-12',
-  },
-  {
-    id: 'usr-2',
-    name: 'Martín Duarte',
-    firstName: 'Martín',
-    lastName: 'Duarte',
-    email: 'martin@inmotask.com',
-    role: 'asesor',
-    phone: '+54 9 11 5533-2041',
-    active: true,
-    createdAt: '2026-03-04',
-  },
-  {
-    id: 'usr-3',
-    name: 'Carla Ferreira',
-    firstName: 'Carla',
-    lastName: 'Ferreira',
-    email: 'carla@inmotask.com',
-    role: 'asesor',
-    active: false,
-    createdAt: '2026-05-19',
-  },
-];
 
 const ymd = (value: string): Date => new Date(`${value}T00:00:00.000Z`);
 
@@ -105,12 +54,12 @@ const main = async (): Promise<void> => {
   if (!KEEP_EXISTING) {
     assertOwnedDatabase();
     console.log(`[seed] borrando colecciones de la base "${config.mongoDb}"...`);
+    // Se borran sólo los datos demo. Las inmobiliarias y sus usuarios NO se
+    // tocan: el seed ya no crea cuentas, y las que existen (create:inmoviliaria)
+    // no deben quedar huérfanas.
     await Promise.all([
       PropertyModel.deleteMany({}),
       TaskModel.deleteMany({}),
-      FinancialEntryModel.deleteMany({}),
-      AppUserModel.deleteMany({}),
-      InmobiliariaModel.deleteMany({}),
     ]);
   }
 
@@ -118,15 +67,13 @@ const main = async (): Promise<void> => {
   // del seed, así que tiene que existir antes que usuarios o inmuebles.
   const inmoviliariaId = await ensureSeedInmobiliaria();
 
-  // Cada paso se saltea si su colección ya tiene documentos, así que --keep
-  // completa lo que falta sin pisar lo que ya está.
-  await seedUsers(inmoviliariaId);
+  // El seed ya NO crea usuarios: las cuentas se dan de alta con
+  // `npm run create:inmoviliaria` (que crea la empresa y su primer admin). Así no
+  // queda ninguna credencial demo conocida en el sistema.
   await seedProperties(inmoviliariaId);
   await seedTasks(inmoviliariaId);
-  await seedFinancialEntries(inmoviliariaId);
 
   console.log('[seed] listo.');
-  console.log(`[seed] login de prueba: natalia@inmotask.com / ${DEMO_PASSWORD}`);
   await disconnectDb();
 };
 
@@ -158,30 +105,6 @@ const ensureSeedInmobiliaria = async (): Promise<string> => {
     { upsert: true, new: true }
   );
   return String(existing._id);
-};
-
-const seedUsers = async (inmoviliariaId: string): Promise<void> => {
-  await skipIfPopulated('AppUser', AppUserModel, async () => {
-    const passwordHash = await bcrypt.hash(DEMO_PASSWORD, SALT_ROUNDS);
-    await AppUserModel.insertMany(
-      SEED_USERS.map((u) => ({
-        name: u.name,
-        firstName: u.firstName,
-        lastName: u.lastName,
-        email: u.email.toLowerCase(),
-        role: u.role as UserRole,
-        inmoviliariaId,
-        phone: u.phone ?? '',
-        license: u.license ?? '',
-        avatar: u.avatar ?? '',
-        active: u.active,
-        passwordHash,
-        // createdAt real (el del mock se descarta: el timestamp lo pone Mongoose).
-        createdAt: ymd(u.createdAt),
-      }))
-    );
-    console.log(`[seed] AppUser: ${SEED_USERS.length} usuarios.`);
-  });
 };
 
 let propertyIdMap = new Map<string, mongoose.Types.ObjectId>();
@@ -253,23 +176,6 @@ const seedTasks = async (inmoviliariaId: string): Promise<void> => {
       }))
     );
     console.log(`[seed] Task: ${docs.length} tareas.`);
-  });
-};
-
-const seedFinancialEntries = async (inmoviliariaId: string): Promise<void> => {
-  await skipIfPopulated('FinancialEntry', FinancialEntryModel, async () => {
-    const docs = await FinancialEntryModel.insertMany(
-      INITIAL_FINANCIAL_ENTRIES.map((e) => ({
-        type: e.type,
-        category: e.category,
-        concept: e.concept,
-        amount: e.amount,
-        date: ymd(e.date),
-        inmoviliariaId,
-        propertyCode: e.propertyCode ?? '',
-      }))
-    );
-    console.log(`[seed] FinancialEntry: ${docs.length} movimientos.`);
   });
 };
 

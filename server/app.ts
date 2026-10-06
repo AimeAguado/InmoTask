@@ -8,7 +8,6 @@ import { authRouter } from './routes/auth.routes.js';
 import { usersRouter } from './routes/users.routes.js';
 import { propertiesRouter } from './routes/properties.routes.js';
 import { tasksRouter } from './routes/tasks.routes.js';
-import { financialsRouter } from './routes/financials.routes.js';
 
 export const createApp = (): express.Express => {
   const app = express();
@@ -49,7 +48,6 @@ export const createApp = (): express.Express => {
   app.use('/api/users', usersRouter);
   app.use('/api/properties', propertiesRouter);
   app.use('/api/tasks', tasksRouter);
-  app.use('/api/financials', financialsRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

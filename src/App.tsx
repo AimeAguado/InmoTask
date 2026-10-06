@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Property, Task, TaskStatus, FinancialEntry } from './types';
-import { financialsApi, propertiesApi, tasksApi, toMessage } from './services/api';
+import { Property, Task, TaskStatus } from './types';
+import { propertiesApi, tasksApi, toMessage } from './services/api';
 import { Logo } from './components/ui/Logo';
 import { Button } from './components/ui/Button';
 import { DashboardView } from './components/views/DashboardView';
@@ -48,7 +48,6 @@ export default function App() {
   // Main Data States (Operational Real Estate: Properties & Internal Tasks)
   const [properties, setProperties] = useState<Property[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [financialEntries, setFinancialEntries] = useState<FinancialEntry[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
 
   // Active View State
@@ -134,29 +133,18 @@ export default function App() {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  // Finanzas es un endpoint de admin: pedirlo siempre devolvería 403 para un
-  // asesor y ensuciaría la consola con un error esperado.
-  const canSeeFinancials = permissions?.canViewFinancials ?? false;
-
   const loadData = useCallback(async () => {
     setIsLoadingData(true);
     try {
       const [props, tsk] = await Promise.all([propertiesApi.list(), tasksApi.list()]);
       setProperties(props.properties);
       setTasks(tsk.tasks);
-
-      if (canSeeFinancials) {
-        const fin = await financialsApi.list();
-        setFinancialEntries(fin.entries);
-      } else {
-        setFinancialEntries([]);
-      }
     } catch (err) {
       showToast(toMessage(err));
     } finally {
       setIsLoadingData(false);
     }
-  }, [canSeeFinancials]);
+  }, []);
 
   // Los datos se piden recién con sesión activa: antes de eso cualquier endpoint
   // responde 401 y no hay nada que mostrar.
@@ -173,7 +161,6 @@ export default function App() {
     // no puede ver por un instante los datos del anterior.
     setProperties([]);
     setTasks([]);
-    setFinancialEntries([]);
     void signOut();
   };
 
@@ -665,8 +652,6 @@ export default function App() {
           <DashboardView
             properties={properties}
             tasks={tasks}
-            financialEntries={financialEntries}
-            canViewFinancials={permissions?.canViewFinancials ?? false}
             onNavigate={(v) => setActiveView(v)}
             onNewProperty={() => {
               setPropertyToEdit(null);
@@ -701,7 +686,6 @@ export default function App() {
               setIsPropertyModalOpen(true);
             }}
 onDeleteProperty={handleAskDeleteProperty}
-        canDeleteProperties={permissions?.canDeleteProperties ?? false}
         onViewDetails={(prop) => {
               setSelectedPropertyForDetail(prop);
               setIsPropertyDetailOpen(true);
@@ -800,14 +784,10 @@ onDeleteProperty={handleAskDeleteProperty}
           setPropertyToEdit(prop);
           setIsPropertyModalOpen(true);
         }}
-        onDelete={
-          permissions?.canDeleteProperties
-            ? (prop) => {
-                setSelectedPropertyForDetail(null);
-                handleAskDeleteProperty(prop);
-              }
-            : undefined
-        }
+        onDelete={(prop) => {
+          setSelectedPropertyForDetail(null);
+          handleAskDeleteProperty(prop);
+        }}
       />
 
       <TaskModal

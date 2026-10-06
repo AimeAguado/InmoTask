@@ -11,6 +11,7 @@ export interface ProfileDraft {
   firstName: string;
   lastName: string;
   phone: string;
+  email: string;
   avatar: string;
 }
 
@@ -46,6 +47,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   const [firstName, setFirstName] = useState(user.firstName ?? '');
   const [lastName, setLastName] = useState(user.lastName ?? '');
   const [phone, setPhone] = useState(user.phone ?? '');
+  const [email, setEmail] = useState(user.email ?? '');
   const [avatar, setAvatar] = useState(user.avatar ?? '');
   const [avatarError, setAvatarError] = useState('');
   const [isReading, setIsReading] = useState(false);
@@ -58,6 +60,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
     setFirstName(user.firstName ?? '');
     setLastName(user.lastName ?? '');
     setPhone(user.phone ?? '');
+    setEmail(user.email ?? '');
     setAvatar(user.avatar ?? '');
     setAvatarError('');
   }, [isOpen, user]);
@@ -79,12 +82,14 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent): void => {
     e.preventDefault();
-    void onSubmit({ firstName, lastName, phone, avatar });
+    void onSubmit({ firstName, lastName, phone, email, avatar });
   };
 
   const trimmedFirst = firstName.trim();
   const trimmedLast = lastName.trim();
-  const canSubmit = trimmedFirst.length > 0 && trimmedLast.length > 0 && !isSaving && !isReading;
+  const trimmedEmail = email.trim();
+  const canSubmit =
+    trimmedFirst.length > 0 && trimmedLast.length > 0 && trimmedEmail.length > 0 && !isSaving && !isReading;
 
   return (
     <Modal
@@ -172,10 +177,23 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
           placeholder="+54 9 11 0000-0000"
         />
 
-        <p className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">
-          La empresa <strong>{inmobiliaria || '—'}</strong> y el rol no se cambian desde acá: los
-          define el administrador de la inmobiliaria.
-        </p>
+        <Input
+          label="Email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          maxLength={160}
+          placeholder="usuario@email.com"
+          helperText="Es tu usuario de ingreso: al cambiarlo, tenés que entrar con este email."
+        />
+
+        <Input
+          label="Inmobiliaria"
+          value={inmobiliaria || '—'}
+          disabled
+          helperText="Empresa de la que venís referido. No se cambia desde acá: la asigna el administrador."
+        />
 
         {error && (
           <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700">

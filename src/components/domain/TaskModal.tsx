@@ -5,7 +5,7 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { Textarea } from '../ui/Textarea';
-import { CURRENT_AGENT } from '../../data/mockData';
+import { useAuth } from '../../context/AuthContext';
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -24,6 +24,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   initialDate,
   properties,
 }) => {
+  const { user } = useAuth();
   const [formData, setFormData] = useState<Partial<Task>>({
     title: '',
     category: 'Visita',
@@ -85,8 +86,8 @@ export const TaskModal: React.FC<TaskModalProps> = ({
       propertyTitle: linkedProperty?.title,
       assignedByDirector: Boolean(formData.assignedByDirector),
       assignedTo: {
-        name: CURRENT_AGENT.name,
-        avatar: CURRENT_AGENT.avatar,
+        name: user?.name ?? '',
+        avatar: user?.avatar ?? '',
       },
       completedAt: formData.status === 'completada' ? new Date().toISOString() : undefined,
     };

@@ -1,8 +1,8 @@
 import { AppUser, UserRole } from '../types';
 import { ApiRequestError, authApi, usersApi } from './api';
-import type { UpdateUserInput } from './api';
+import type { AuthConfig, RegisterInput, UpdateUserInput } from './api';
 
-export type { UpdateUserInput };
+export type { RegisterInput, UpdateUserInput };
 
 
 /**
@@ -11,7 +11,6 @@ export type { UpdateUserInput };
  * XSS pueda llegar. Acá sólo se orchestran las llamadas; el store local y el
  * digest weak de contraseñas quedaron eliminados.
  */
-export const DEMO_PASSWORD = 'inmotask';
 
 export type LoginResult =
   | { ok: true; user: AppUser }
@@ -32,6 +31,60 @@ export const login = async (email: string, password: string): Promise<LoginResul
       if (err.status === 0 || err.status >= 500) return { ok: false, reason: 'server' };
     }
     return { ok: false, reason: 'credentials' };
+  }
+};
+
+export type GoogleLoginResult = { ok: true; user: AppUser } | { ok: false; message: string };
+
+/**
+ * "Continuar con Google". El id_token lo valida y traduce el backend; acá solo
+ * se reenvía el error con su mensaje (que ya es presentable: "No existe una
+ * cuenta de InmoTask asociada a este email...").
+ */
+export const loginWithGoogle = async (credential: string): Promise<GoogleLoginResult> => {
+  try {
+    const { user } = await authApi.google(credential);
+    return { ok: true, user };
+  } catch (err) {
+    return {
+      ok: false,
+      message:
+        err instanceof ApiRequestError
+          ? err.message
+          : 'No pudimos conectarnos con Google. Intentá de nuevo.',
+    };
+  }
+};
+
+export type RegisterResult =
+  | { ok: true; user: AppUser }
+  | { ok: false; code?: string; message: string };
+
+/**
+ * Autoregistro: pide unirse a una inmobiliaria existente. El usuario nace
+ * inactivo y no puede ingresar hasta que el admin de esa empresa lo active.
+ */
+export const register = async (input: RegisterInput): Promise<RegisterResult> => {
+  try {
+    const { user } = await authApi.register(input);
+    return { ok: true, user };
+  } catch (err) {
+    return {
+      ok: false,
+      code: err instanceof ApiRequestError ? err.code : undefined,
+      message:
+        err instanceof ApiRequestError
+          ? err.message
+          : 'No pudimos guardar el usuario. Intentá de nuevo.',
+    };
+  }
+};
+
+export const getGoogleConfig = async (): Promise<AuthConfig | null> => {
+  try {
+    return await authApi.config();
+  } catch {
+    return null;
   }
 };
 

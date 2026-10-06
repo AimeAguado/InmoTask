@@ -1,8 +1,10 @@
+import { randomUUID } from 'node:crypto';
 import type { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { config } from '../config.js';
 import { ApiError } from '../lib/http.js';
 import { AppUserModel } from '../models/AppUser.js';
+import { AuthSessionModel } from '../models/AuthSession.js';
 import { InmobiliariaModel } from '../models/Inmobiliaria.js';
 import { serializeUser } from '../lib/serialize.js';
 import type { AppUser, UserRole } from '../../src/types/index.js';
@@ -11,6 +13,11 @@ export const SESSION_COOKIE = 'inmotask_session';
 const SESSION_MAX_AGE_MS = 1000 * 60 * 60 * 12; // 12 h
 
 export interface SessionClaims {
+  /**
+   * Id de la sesión en la colección AuthSession. Sin él el token no vale:
+   * requireAuth comprueba que la sesión siga viva acá en cada request.
+   */
+  jti: string;
   sub: string;
   role: UserRole;
   /**
@@ -30,12 +37,50 @@ declare global {
   }
 }
 
-export const signSession = (user: AppUser): string =>
-  jwt.sign(
-    { sub: user.id, role: user.role, inmoviliariaId: user.inmoviliariaId } satisfies SessionClaims,
+/**
+ * Crea una sesión persistida y firma el token que la referencia.
+ *
+ * El documento de AuthSession (con el jti) se guarda ANTES de firmar: si la
+ * firma fallara no habría cookie sin rastro en la base.
+ */
+export const signSession = async (user: AppUser): Promise<string> => {
+  const jti = randomUUID();
+  await AuthSessionModel.create({
+    jti,
+    userId: user.id,
+    expiresAt: new Date(Date.now() + SESSION_MAX_AGE_MS),
+  });
+  return jwt.sign(
+    {
+      jti,
+      sub: user.id,
+      role: user.role,
+      inmoviliariaId: user.inmoviliariaId,
+    } satisfies SessionClaims,
     config.jwtSecret,
     { expiresIn: SESSION_MAX_AGE_MS }
   );
+};
+
+/** Borra la sesión que corresponde a la cookie del request (si existe). */
+export const revokeSession = async (req: Request, res: Response): Promise<void> => {
+  const token = req.cookies?.[SESSION_COOKIE];
+  clearSessionCookie(res);
+  if (!token) return;
+  try {
+    const claims = jwt.verify(token, config.jwtSecret) as SessionClaims;
+    // El jti puede faltar en cookies emitidas por versiones viejas: en ese caso
+    // no hay documento que borrar y basta con limpiar la cookie.
+    if (claims.jti) await AuthSessionModel.deleteOne({ jti: claims.jti });
+  } catch {
+    // Token inválido o ya vencido: no hay sesión activa que revocar.
+  }
+};
+
+/** Invalida todas las sesiones de un usuario (por ejemplo al cambiar la clave). */
+export const destroyUserSessions = async (userId: string): Promise<void> => {
+  await AuthSessionModel.deleteMany({ userId });
+};
 
 export const setSessionCookie = (res: Response, token: string): void => {
   res.cookie(SESSION_COOKIE, token, {
@@ -71,6 +116,18 @@ export const requireAuth = async (
       claims = jwt.verify(token, config.jwtSecret) as SessionClaims;
     } catch {
       throw ApiError.unauthorized('invalid-session', 'Tu sesión expiró. Volvé a ingresar.');
+    }
+
+    // Sesiones emitidas antes de existir AuthSession no tienen jti: se rechazan
+    // y el usuario vuelve a ingresar una vez.
+    if (!claims.jti) {
+      throw ApiError.unauthorized('invalid-session', 'Tu sesión expiró. Volvé a ingresar.');
+    }
+    // La sesión tiene que seguir viva en la base: si el usuario cerró sesión o
+    // cambió su contraseña, este token ya no sirve aunque no haya expirado.
+    const session = await AuthSessionModel.exists({ jti: claims.jti, expiresAt: { $gt: new Date() } });
+    if (!session) {
+      throw ApiError.unauthorized('invalid-session', 'Tu sesión fue cerrada. Volvé a ingresar.');
     }
 
     const user = await AppUserModel.findById(claims.sub);

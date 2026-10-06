@@ -16,8 +16,6 @@ interface PropertiesViewProps {
   onDeleteProperty: (property: Property) => void;
   onViewDetails: (property: Property) => void;
   onScheduleVisit: (property: Property) => void;
-  /** Sólo el admin puede eliminar: el botón se oculta a los asesores. */
-  canDeleteProperties?: boolean;
   initialSearchQuery?: string;
 }
 
@@ -28,7 +26,6 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
   onDeleteProperty,
   onViewDetails,
   onScheduleVisit,
-  canDeleteProperties = false,
   initialSearchQuery = '',
 }) => {
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
@@ -244,15 +241,13 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
           >
             <Edit2 className="w-4 h-4" />
           </button>
-          {canDeleteProperties && (
-            <button
-              onClick={() => onDeleteProperty(p)}
-              className="p-1.5 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 transition-colors"
-              title="Eliminar de cartelera"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          )}
+          <button
+            onClick={() => onDeleteProperty(p)}
+            className="p-1.5 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 transition-colors"
+            title="Eliminar de cartelera"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
         </div>
       ),
     },
@@ -352,7 +347,7 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
             { value: 'Oficina Central', label: '🔑 En Oficina' },
             { value: 'Portería', label: '🏢 En Portería' },
             { value: 'Propietario', label: '👤 Propietario' },
-            { value: 'Agente a Cargo', label: '🎒 En poder de Natalia' },
+            { value: 'Agente a Cargo', label: '🎒 En poder del agente' },
           ]}
         />
 
@@ -390,7 +385,7 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
                 onViewDetails={onViewDetails}
                 onScheduleVisit={onScheduleVisit}
                 onEdit={onEditProperty}
-                onDelete={canDeleteProperties ? onDeleteProperty : undefined}
+                onDelete={onDeleteProperty}
               />
             ))}
           </div>

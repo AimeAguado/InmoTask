@@ -67,4 +67,10 @@ export const config = {
     ? required('JWT_SECRET')
     : process.env.JWT_SECRET?.trim() || DEV_JWT_SECRET,
   clientOrigin: process.env.CLIENT_ORIGIN?.trim() || 'http://localhost:3000',
+  /**
+   * Client ID de Google Identity Services (GCLOUD → Credenciales → OAuth). Es un
+   * valor público: se usa para verificar el id_token del login con Google.
+   * Opcional: si falta, el botón "Continuar con Google" se oculta en el login.
+   */
+  googleClientId: process.env.GOOGLE_CLIENT_ID?.trim() || '',
 };

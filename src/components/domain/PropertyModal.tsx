@@ -5,7 +5,7 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { Textarea } from '../ui/Textarea';
-import { CURRENT_AGENT } from '../../data/mockData';
+import { useAuth } from '../../context/AuthContext';
 
 interface PropertyModalProps {
   isOpen: boolean;
@@ -20,6 +20,7 @@ export const PropertyModal: React.FC<PropertyModalProps> = ({
   onSave,
   propertyToEdit,
 }) => {
+  const { user } = useAuth();
   const [formData, setFormData] = useState<Partial<Property>>({
     title: '',
     type: 'Departamento',
@@ -116,7 +117,13 @@ export const PropertyModal: React.FC<PropertyModalProps> = ({
       signagePlaced: propertyToEdit ? propertyToEdit.signagePlaced : false,
       featured: Boolean(formData.featured),
       tags: formData.tags || [],
-      assignedAgent: CURRENT_AGENT,
+      assignedAgent: {
+        name: user?.name ?? '',
+        avatar: user?.avatar ?? '',
+        role: user?.role ?? 'asesor',
+        phone: user?.phone ?? '',
+        email: user?.email ?? '',
+      },
       createdAt: propertyToEdit ? propertyToEdit.createdAt : new Date().toISOString().split('T')[0],
     };
 
@@ -202,7 +209,7 @@ export const PropertyModal: React.FC<PropertyModalProps> = ({
               { value: 'Oficina Central', label: '🔑 Oficina Central (Tablero)' },
               { value: 'Portería', label: '🏢 Portería del Edificio' },
               { value: 'Propietario', label: '👤 Propietario (Coordina jefe)' },
-              { value: 'Agente a Cargo', label: '🎒 En poder de Natalia' },
+              { value: 'Agente a Cargo', label: '🎒 En poder del agente' },
             ]}
             helperText="Indica dónde retirar la llave antes de salir a la visita."
           />
