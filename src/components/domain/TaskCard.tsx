@@ -147,7 +147,6 @@ export const TaskCard: React.FC<TaskCardProps> = ({
         <div className="flex items-center gap-1.5" title={`A cargo: ${task.assignedTo.name}`}>
           <UserAvatar
             name={task.assignedTo.name}
-            src={task.assignedTo.avatar}
             size="xs"
             className="!w-5 !h-5 !text-[8px] border border-white shadow-2xs"
           />

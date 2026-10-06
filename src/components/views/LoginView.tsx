@@ -5,7 +5,8 @@ import { Button } from '../ui/Button';
 import { Logo } from '../ui/Logo';
 import { GoogleSignInButton } from '../domain/GoogleSignInButton';
 import { RegisterUserModal } from '../domain/RegisterUserModal';
-import { Mail, Lock, AlertCircle, LogIn, UserPlus, ShieldCheck } from 'lucide-react';
+import { DEMO } from '../../data/demo';
+import { Mail, Lock, AlertCircle, LogIn, UserPlus, ShieldCheck, Sparkles } from 'lucide-react';
 
 export const LoginView: React.FC = () => {
   const { signIn } = useAuth();
@@ -112,7 +113,50 @@ export const LoginView: React.FC = () => {
 
           <GoogleSignInButton onError={setError} />
 
-          <div className="mt-6 pt-5 border-t border-slate-100">
+          <div className="mt-6 pt-5 border-t border-slate-100 space-y-4">
+            <div className="rounded-lg border border-emerald-200/70 bg-emerald-50/60 px-3 py-3">
+              <div className="flex items-start gap-2 text-emerald-800">
+                <Sparkles className="mt-0.5 h-4 w-4 shrink-0" />
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold leading-tight">
+                    Probar la demo sin crear cuenta
+                  </p>
+                  <p className="text-[11px] leading-relaxed text-emerald-700/90">
+                    Esta base está aislada ("{DEMO.inmobiliaria}") con propiedades y tareas ficticias
+                    para recorrer la app.
+                  </p>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEmail(DEMO.admin.email);
+                        setPassword(DEMO.admin.password);
+                        setError(null);
+                      }}
+                      className="rounded-md border border-emerald-300/70 bg-white/80 px-2 py-1 text-[11px] font-semibold text-emerald-800 transition-colors hover:bg-white hover:shadow-sm"
+                    >
+                      {DEMO.admin.title}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEmail(DEMO.asesor.email);
+                        setPassword(DEMO.asesor.password);
+                        setError(null);
+                      }}
+                      className="rounded-md border border-emerald-300/70 bg-white/80 px-2 py-1 text-[11px] font-semibold text-emerald-800 transition-colors hover:bg-white hover:shadow-sm"
+                    >
+                      {DEMO.asesor.title}
+                    </button>
+                  </div>
+                  <p className="text-[10px] leading-relaxed text-emerald-700/80">
+                    {DEMO.admin.email} / {DEMO.admin.password} — {DEMO.asesor.email} /{' '}
+                    {DEMO.asesor.password}
+                  </p>
+                </div>
+              </div>
+            </div>
+
             <div className="flex items-center justify-center gap-2 text-xs text-slate-500">
               <span>¿No tenés cuenta?</span>
               <Button

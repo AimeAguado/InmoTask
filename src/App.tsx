@@ -517,7 +517,7 @@ export default function App() {
                 aria-expanded={isUserMenuOpen}
                 title="Menú de usuario"
               >
-                <UserAvatar name={user.name} src={user.avatar} size="sm" />
+                <UserAvatar name={user.name} size="sm" />
                 <div className="hidden xl:block min-w-0 max-w-[150px] text-left">
                   <div className="text-xs font-bold text-slate-900 leading-tight truncate">
                     {user.name}

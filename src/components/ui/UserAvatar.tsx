@@ -2,7 +2,6 @@ import React from 'react';
 
 interface UserAvatarProps {
   name: string;
-  src?: string;
   size?: 'xs' | 'sm' | 'md' | 'lg';
   className?: string;
 }
@@ -37,18 +36,11 @@ const paletteFor = (name: string): string => {
   return PALETTES[hash % PALETTES.length];
 };
 
-export const UserAvatar: React.FC<UserAvatarProps> = ({ name, src, size = 'sm', className = '' }) => {
+/**
+ * Avatar de usuario: siempre muestra las iniciales, sin foto de perfil.
+ */
+export const UserAvatar: React.FC<UserAvatarProps> = ({ name, size = 'sm', className = '' }) => {
   const dimension = SIZES[size];
-
-  if (src) {
-    return (
-      <img
-        src={src}
-        alt={name}
-        className={`${dimension} rounded-full object-cover border border-slate-300 shadow-2xs shrink-0 ${className}`}
-      />
-    );
-  }
 
   return (
     <span

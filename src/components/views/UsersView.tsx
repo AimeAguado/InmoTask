@@ -301,7 +301,7 @@ export const UsersView: React.FC = () => {
               } ${u.active ? '' : 'bg-slate-50/60'}`}
             >
               <div className="flex items-center gap-3 min-w-0 flex-1">
-                <UserAvatar name={u.name} src={u.avatar} size="md" />
+                <UserAvatar name={u.name} size="md" />
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-bold text-slate-900">{u.name}</span>

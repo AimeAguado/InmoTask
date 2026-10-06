@@ -3,6 +3,7 @@ import { Property } from '../../types';
 import { Modal } from '../ui/Modal';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
+import { UserAvatar } from '../ui/UserAvatar';
 import {
   MapPin,
   Bed,
@@ -220,11 +221,7 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
         {/* Agent In Charge */}
         <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img
-              src={property.assignedAgent.avatar}
-              alt={property.assignedAgent.name}
-              className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-xs"
-            />
+            <UserAvatar name={property.assignedAgent.name} size="md" />
             <div>
               <div className="text-xs font-semibold text-slate-500">Asesora a Cargo de Mostrar</div>
               <div className="text-sm font-bold text-slate-900">{property.assignedAgent.name}</div>
