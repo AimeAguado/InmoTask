@@ -1,0 +1,6 @@
+prop-2',
+    code: 'INM-2089',
+    title: 'Penthouse Triplex con Terraza Exclusiva',
+    type: 'Departamento',
+    operation: 'Venta',
+    status: 're

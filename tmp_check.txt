@@ -1,0 +1,8 @@
+prop-3',
+    code: 'INM-3011',
+    title: 'Casa Sustentable con Gran Parque',
+    type: 'Casa',
+    operation: 'Venta',
+    status: 'disponible',
+    address: 'Calle Los Tilos 184',
+    neighborhood: 

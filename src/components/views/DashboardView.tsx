@@ -10,8 +10,6 @@ import {
   CheckSquare,
   Plus,
   ArrowRight,
-  Key,
-  Flag,
 } from 'lucide-react';
 
 interface DashboardViewProps {
@@ -129,7 +127,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               No hay tareas pendientes en este momento.
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {pendingTasksList.map((task) => (
                 <TaskCard
                   key={task.id}
@@ -144,7 +142,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       </div>
 
       {/* Grid de Métricas Operativas */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <MetricCard
           title="Inmuebles en Cartera"
           value={totalProperties}
@@ -164,26 +162,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           icon={CheckSquare}
           onClick={() => onNavigate('tasks')}
         />
-
-        <MetricCard
-          title="Llaves en Recepción"
-          value={keysInOffice}
-          change="Llavero de oficina"
-          trend="up"
-          timeframe="listas para salida"
-          icon={Key}
-          onClick={() => onNavigate('properties')}
-        />
-
-        <MetricCard
-          title="Cartelería Activa"
-          value={signageActiveCount}
-          change="Carteles colocados"
-          trend="up"
-          timeframe="visibles en calle"
-          icon={Flag}
-          onClick={() => onNavigate('properties')}
-        />
       </div>
 
       {/* Resumen Semanal de Productividad */}
@@ -192,86 +170,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           tasks={tasks}
           onNavigateToTasks={() => onNavigate('tasks')}
         />
-      </div>
-
-      {/* Two Column Layout: Urgent Tasks & Featured Properties */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: Keys & Signage (1/3) */}
-        <div className="lg:col-span-1 space-y-4">
-          {/* Estado de Llaves y Carteles Card */}
-          <div className="bg-white rounded-xl border border-slate-200/90 p-4.5">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <Key className="w-4 h-4 text-slate-700" />
-                <h3 className="text-sm font-bold text-slate-900">Control de Llaves & Cartelería</h3>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onNavigate('properties')}
-                className="text-xs text-slate-500 hover:text-slate-900 p-1 h-auto"
-              >
-                Ver Inmuebles
-              </Button>
-            </div>
-
-            <div className="mt-3 space-y-2.5">
-              {[
-                { label: 'Llaves en Oficina Central', count: keysInOffice, badge: 'disponible' as const, icon: '🔑' },
-                { label: 'Llaves en Portería del Edificio', count: keysInBuilding, badge: 'reservado' as const, icon: '🏢' },
-                { label: 'Carteles Colocados en Frente', count: signageActiveCount, badge: 'disponible' as const, icon: '🚩' },
-                { label: 'Inmuebles en Visita Hoy', count: properties.filter(p => p.status === 'en_visita').length, badge: 'en_visita' as const, icon: '🚪' },
-              ].map((item, idx) => (
-                <div
-                  key={idx}
-                  onClick={() => onNavigate('properties')}
-                  className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors text-xs"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm">{item.icon}</span>
-                    <span className="text-slate-700 font-medium">{item.label}</span>
-                  </div>
-                  <span className="font-mono font-bold tabular-nums text-slate-900 bg-slate-100 px-2 py-0.5 rounded">
-                    {item.count}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column: Featured Properties (2/3) */}
-        <div className="lg:col-span-2 space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-base font-bold text-slate-900 tracking-tight">
-                Inmuebles Relevantes para Visita
-              </h3>
-              <p className="text-xs text-slate-500">
-                Unidades en cartera listas para mostrar según la agenda de la oficina.
-              </p>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onNavigate('properties')}
-              rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
-            >
-              Ver Todas las Fichas
-            </Button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {featuredProperties.map((property) => (
-              <PropertyCard
-                key={property.id}
-                property={property}
-                onViewDetails={onViewPropertyDetails}
-                onScheduleVisit={() => onNewTask()}
-              />
-            ))}
-          </div>
-        </div>
       </div>
     </div>
   );
