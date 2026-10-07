@@ -117,6 +117,7 @@ const seedPortfolio = async (inmoviliariaId: string): Promise<void> => {
           $set: {
             imageUrl: p.imageUrl,
             images: p.images.filter(Boolean),
+            featured: p.featured,
           },
         }
       );
@@ -144,6 +145,7 @@ const seedPortfolio = async (inmoviliariaId: string): Promise<void> => {
       signageStatus: p.signageStatus,
       imageUrl: p.imageUrl,
       images: p.images.filter(Boolean),
+      featured: p.featured,
       description: p.description,
       featured: p.featured,
       tags: p.tags,

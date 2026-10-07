@@ -113,7 +113,7 @@ export const INITIAL_PROPERTIES: Property[] = [
     services: 'Todos los servicios',
     aptaCredito: false,
     financing: '',
-    featured: false,
+    featured: true,
     tags: ['Lago Privado', 'Club House', 'Cochera Doble'],
     active: true,
     signagePlaced: true,
