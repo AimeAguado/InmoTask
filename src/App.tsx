@@ -665,6 +665,25 @@ export default function App() {
               setSelectedPropertyForDetail(prop);
               setIsPropertyDetailOpen(true);
             }}
+            onScheduleVisit={(prop) => {
+              setTaskToEdit({
+                id: `task-${Date.now()}`,
+                title: `Visita programada: ${prop.code} - ${prop.title}`,
+                category: 'Visita',
+                priority: 'alta',
+                status: 'pendiente',
+                dueDate: new Date().toISOString().split('T')[0],
+                dueTime: '16:00',
+                propertyId: prop.id,
+                propertyTitle: prop.title,
+                assignedByDirector: true,
+                assignedTo: {
+                  name: user.name,
+                  avatar: user.avatar,
+                },
+              });
+              setIsTaskModalOpen(true);
+            }}
             onToggleTaskStatus={handleToggleTaskStatus}
             onEditTask={(task) => {
               setTaskToEdit(task);
@@ -715,6 +734,8 @@ onDeleteProperty={handleAskDeleteProperty}
         {activeView === 'tasks' && (
           <TasksView
             tasks={tasks}
+            properties={properties}
+            onNavigateToProperties={() => setActiveView('properties')}
             onNewTask={() => {
               setTaskToEdit(null);
               setTaskInitialDate(undefined);

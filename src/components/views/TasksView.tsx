@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Task, TaskPriority, TaskStatus, TaskCategory } from '../../types';
+import { Task, TaskPriority, TaskStatus, TaskCategory, Property } from '../../types';
 import { TaskCard } from '../domain/TaskCard';
 import { TaskCalendarView } from '../domain/TaskCalendarView';
 import { Table, Column } from '../ui/Table';
@@ -17,10 +17,16 @@ import {
   AlertCircle,
   Edit2,
   Trash2,
+  Key,
+  Flag,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 
 interface TasksViewProps {
   tasks: Task[];
+  properties: Property[];
+  onNavigateToProperties: () => void;
   onNewTask: () => void;
   onNewTaskWithDate?: (dateStr: string) => void;
   onEditTask: (task: Task) => void;
@@ -31,6 +37,8 @@ interface TasksViewProps {
 
 export const TasksView: React.FC<TasksViewProps> = ({
   tasks,
+  properties,
+  onNavigateToProperties,
   onNewTask,
   onNewTaskWithDate,
   onEditTask,
@@ -43,6 +51,15 @@ export const TasksView: React.FC<TasksViewProps> = ({
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+
+  // La card de llaves & cartelería arranca plegada: no ocupa espacio salvo que
+  // la abran, cuando interesa consultar el control de llaves y carteles.
+  const [isKeysCardOpen, setIsKeysCardOpen] = useState(false);
+
+  // Control de Llaves en Oficina y Cartelería
+  const keysInOffice = properties.filter((p) => p.keysLocation === 'Oficina Central').length;
+  const keysInBuilding = properties.filter((p) => p.keysLocation === 'Portería').length;
+  const signageActiveCount = properties.filter((p) => p.signageStatus === 'Cartel Colocado').length;
 
   const filteredTasks = useMemo(() => {
     return tasks.filter((t) => {
@@ -298,7 +315,72 @@ export const TasksView: React.FC<TasksViewProps> = ({
         </div>
       </div>
 
-      {/* Filter Bar */}
+      {/* Control de Llaves & Cartelería */}
+      <div className="bg-white rounded-xl border border-slate-200/90 shadow-xs overflow-hidden">
+        <button
+          onClick={() => setIsKeysCardOpen((v) => !v)}
+          className="w-full flex items-center justify-between gap-3 p-4.5 text-left hover:bg-slate-50 transition-colors"
+          aria-expanded={isKeysCardOpen}
+        >
+          <div className="flex items-center gap-2 min-w-0">
+            <Key className="w-4 h-4 text-slate-700 shrink-0" />
+            <h3 className="text-sm font-bold text-slate-900 whitespace-nowrap">Control de Llaves & Cartelería</h3>
+            <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-mono font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200 whitespace-nowrap">
+              🔑 {keysInOffice} · 🚩 {signageActiveCount}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {isKeysCardOpen && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onNavigateToProperties();
+                }}
+                className="text-xs text-slate-500 hover:text-slate-900 p-1 h-auto"
+              >
+                Ver Inmuebles
+              </Button>
+            )}
+            <span className="text-slate-400">
+              {isKeysCardOpen ? (
+                <ChevronUp className="w-4 h-4" />
+              ) : (
+                <ChevronDown className="w-4 h-4" />
+              )}
+            </span>
+          </div>
+        </button>
+
+        {isKeysCardOpen && (
+          <div className="px-4.5 pb-4.5 space-y-2.5 border-t border-slate-100 pt-3">
+            {[
+              { label: 'Llaves en Oficina Central', count: keysInOffice, icon: '🔑' },
+              { label: 'Llaves en Portería del Edificio', count: keysInBuilding, icon: '🏢' },
+              { label: 'Carteles Colocados en Frente', count: signageActiveCount, icon: '🚩' },
+              { label: 'Inmuebles en Visita Hoy', count: properties.filter((p) => p.status === 'en_visita').length, icon: '🚪' },
+            ].map((item, idx) => (
+              <div
+                key={idx}
+                onClick={onNavigateToProperties}
+                className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors text-xs"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-sm">{item.icon}</span>
+                  <span className="text-slate-700 font-medium">{item.label}</span>
+                </div>
+                <span className="font-mono font-bold tabular-nums text-slate-900 bg-slate-100 px-2 py-0.5 rounded">
+                  {item.count}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Filter Bar (sólo en Tablero y Lista; el Calendario se muestra limpio) */}
+      {viewMode !== 'calendar' && (
       <FilterBar
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
@@ -349,11 +431,12 @@ export const TasksView: React.FC<TasksViewProps> = ({
           />
         )}
       </FilterBar>
+      )}
 
       {/* Content: Calendar, Kanban or Table */}
       {viewMode === 'calendar' ? (
         <TaskCalendarView
-          tasks={filteredTasks}
+          tasks={tasks}
           onNewTaskWithDate={onNewTaskWithDate}
           onEditTask={onEditTask}
           onToggleTaskStatus={onToggleTaskStatus}

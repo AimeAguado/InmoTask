@@ -15,6 +15,7 @@ export const LoginView: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
+  const [demoLoading, setDemoLoading] = useState<'admin' | 'asesor' | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,6 +38,22 @@ export const LoginView: React.FC = () => {
       setError('No pudimos conectar con el servidor. Intentá de nuevo en un momento.');
     } else {
       setError('Email o contraseña incorrectos.');
+    }
+  };
+
+  /** Entrada directa con las cuentas demo: un click y queda logueado. */
+  const handleDemoLogin = async (role: 'admin' | 'asesor') => {
+    setError(null);
+    setDemoLoading(role);
+    const account = role === 'admin' ? DEMO.admin : DEMO.asesor;
+    const result = await signIn(account.email, account.password);
+    setDemoLoading(null);
+    if (!result.ok) {
+      setError(
+        result.reason === 'server'
+          ? 'No pudimos conectar con el servidor. Intentá de nuevo en un momento.'
+          : 'No se pudo ingresar con la cuenta demo.'
+      );
     }
   };
 
@@ -128,25 +145,19 @@ export const LoginView: React.FC = () => {
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <button
                       type="button"
-                      onClick={() => {
-                        setEmail(DEMO.admin.email);
-                        setPassword(DEMO.admin.password);
-                        setError(null);
-                      }}
-                      className="rounded-md border border-emerald-300/70 bg-white/80 px-2 py-1 text-[11px] font-semibold text-emerald-800 transition-colors hover:bg-white hover:shadow-sm"
+                      onClick={() => handleDemoLogin('admin')}
+                      disabled={demoLoading !== null}
+                      className="rounded-md border border-emerald-300/70 bg-white/80 px-2 py-1 text-[11px] font-semibold text-emerald-800 transition-colors hover:bg-white hover:shadow-sm disabled:opacity-60 disabled:cursor-wait"
                     >
-                      {DEMO.admin.title}
+                      {demoLoading === 'admin' ? 'Ingresando…' : 'Administrador'}
                     </button>
                     <button
                       type="button"
-                      onClick={() => {
-                        setEmail(DEMO.asesor.email);
-                        setPassword(DEMO.asesor.password);
-                        setError(null);
-                      }}
-                      className="rounded-md border border-emerald-300/70 bg-white/80 px-2 py-1 text-[11px] font-semibold text-emerald-800 transition-colors hover:bg-white hover:shadow-sm"
+                      onClick={() => handleDemoLogin('asesor')}
+                      disabled={demoLoading !== null}
+                      className="rounded-md border border-emerald-300/70 bg-white/80 px-2 py-1 text-[11px] font-semibold text-emerald-800 transition-colors hover:bg-white hover:shadow-sm disabled:opacity-60 disabled:cursor-wait"
                     >
-                      {DEMO.asesor.title}
+                      {demoLoading === 'asesor' ? 'Ingresando…' : 'Asesor'}
                     </button>
                   </div>
                   <p className="text-[10px] leading-relaxed text-emerald-700/80">

@@ -10,6 +10,7 @@ import {
   CheckSquare,
   Plus,
   ArrowRight,
+  Sparkles,
 } from 'lucide-react';
 
 interface DashboardViewProps {
@@ -19,6 +20,7 @@ interface DashboardViewProps {
   onNewProperty: () => void;
   onNewTask: () => void;
   onViewPropertyDetails: (property: Property) => void;
+  onScheduleVisit: (property: Property) => void;
   onToggleTaskStatus: (task: Task) => void;
   onEditTask: (task: Task) => void;
 }
@@ -30,6 +32,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onNewProperty,
   onNewTask,
   onViewPropertyDetails,
+  onScheduleVisit,
   onToggleTaskStatus,
   onEditTask,
 }) => {
@@ -42,13 +45,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const pendingTasks = tasks.filter((t) => t.status !== 'completada');
   const highPriorityTodayCount = pendingTasks.filter((t) => t.priority === 'alta').length;
 
-  // Control de Llaves en Oficina y Cartelería
-  const keysInOffice = properties.filter((p) => p.keysLocation === 'Oficina Central').length;
-  const keysInBuilding = properties.filter((p) => p.keysLocation === 'Portería').length;
-  const signageActiveCount = properties.filter((p) => p.signageStatus === 'Cartel Colocado').length;
-
   const pendingTasksList = pendingTasks.slice(0, 3);
-  const featuredProperties = properties.slice(0, 3);
+
+  // Propiedades Destacadas: las marcadas con featured en la ficha; si la
+  // cartera no tiene ninguna, se toman las primeras de la cartelera.
+  const featuredProperties = properties.filter((p) => p.featured);
+  const featuredList = featuredProperties.length > 0 ? featuredProperties : properties.slice(0, 3);
 
   return (
     <div className="space-y-6">
@@ -89,8 +91,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       </div>
 
-      {/* Agenda & Tareas Inminentes — arriba de todo, es lo accionable del día */}
-      <div className="bg-white rounded-xl border border-slate-200/90 p-4.5 shadow-xs">
+      {/* Agenda & Resumen Semanal — cada uno ocupa la mitad del ancho */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+        {/* Agenda & Tareas Inminentes — lo accionable del día */}
+        <div className="bg-white rounded-xl border border-slate-200/90 p-4.5 shadow-xs flex flex-col">
         <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-100">
           <div className="flex items-center gap-2">
             <CheckSquare className="w-4 h-4 text-emerald-600" />
@@ -121,13 +125,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         </div>
 
-        <div className="mt-3.5">
+        <div className="mt-3.5 flex-1 min-h-0 overflow-y-auto max-h-none lg:max-h-[340px] lg:pr-0.5">
           {pendingTasksList.length === 0 ? (
             <div className="py-8 text-center text-xs text-slate-400">
               No hay tareas pendientes en este momento.
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3">
               {pendingTasksList.map((task) => (
                 <TaskCard
                   key={task.id}
@@ -139,6 +143,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
           )}
         </div>
+      </div>
+
+      {/* Resumen Semanal de Productividad */}
+      <WeeklySummaryPanel
+        tasks={tasks}
+        onNavigateToTasks={() => onNavigate('tasks')}
+      />
       </div>
 
       {/* Grid de Métricas Operativas */}
@@ -164,12 +175,38 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         />
       </div>
 
-      {/* Resumen Semanal de Productividad */}
-      <div className="grid gap-6 items-start grid-cols-1">
-        <WeeklySummaryPanel
-          tasks={tasks}
-          onNavigateToTasks={() => onNavigate('tasks')}
-        />
+      {/* Propiedades Destacadas */}
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h3 className="text-base font-bold text-slate-900 tracking-tight flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-amber-500" />
+              Propiedades Destacadas
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Unidades destacadas en cartera, listas para mostrar según la agenda de la oficina.
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onNavigate('properties')}
+            rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
+          >
+            Ver Todas las Fichas
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {featuredList.map((property) => (
+            <PropertyCard
+              key={property.id}
+              property={property}
+              onViewDetails={onViewPropertyDetails}
+              onScheduleVisit={onScheduleVisit}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );

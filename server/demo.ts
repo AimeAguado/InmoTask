@@ -105,7 +105,22 @@ const main = async (): Promise<void> => {
 const seedPortfolio = async (inmoviliariaId: string): Promise<void> => {
   const existing = await PropertyModel.countDocuments({ inmoviliariaId });
   if (existing > 0) {
-    console.log(`[seed:demo] ya tiene ${existing} inmuebles, se mantienen.`);
+    console.log(`[seed:demo] ya tiene ${existing} inmuebles, se refrescan las fotos demo.`);
+    // La cartera demo es idempotente: las fichas no se pisan ni se duplican,
+    // pero las fotos ficticias sí se refrescan, para que los cambios del mock
+    // lleguen a una base ya sembrada (antes este caso hacía `return` y las
+    // imágenes nuevas no se aplicaban).
+    for (const p of INITIAL_PROPERTIES) {
+      await PropertyModel.updateOne(
+        { inmoviliariaId, code: p.code },
+        {
+          $set: {
+            imageUrl: p.imageUrl,
+            images: p.images.filter(Boolean),
+          },
+        }
+      );
+    }
     return;
   }
 
@@ -128,6 +143,7 @@ const seedPortfolio = async (inmoviliariaId: string): Promise<void> => {
       keysLocation: p.keysLocation,
       signageStatus: p.signageStatus,
       imageUrl: p.imageUrl,
+      images: p.images.filter(Boolean),
       description: p.description,
       featured: p.featured,
       tags: p.tags,
